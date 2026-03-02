@@ -1,0 +1,12 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Stabix API",
+    "version": "1.0.0",
+    "description": "Copy the actual schema from backend: GET http://localhost:8000/api/schema/"
+  },
+  "paths": {},
+  "components": {
+    "schemas": {}
+  }
+}

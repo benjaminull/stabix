@@ -1,0 +1,61 @@
+[tool.poetry]
+name = "stabix-backend"
+version = "0.1.0"
+description = "Stabix marketplace backend API"
+authors = ["Stabix Team"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+Django = "^5.0"
+djangorestframework = "^3.14"
+djangorestframework-simplejwt = "^5.3"
+drf-spectacular = "^0.27"
+psycopg2-binary = "^2.9"
+redis = "^5.0"
+celery = "^5.3"
+django-celery-beat = "^2.5"
+django-filter = "^23.5"
+django-cors-headers = "^4.3"
+channels = {extras = ["daphne"], version = "^4.0"}
+channels-redis = "^4.1"
+gunicorn = "^21.2"
+python-dotenv = "^1.0"
+dj-database-url = "^2.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4"
+pytest-django = "^4.7"
+pytest-cov = "^4.1"
+factory-boy = "^3.3"
+black = "^23.12"
+isort = "^5.13"
+flake8 = "^7.0"
+pre-commit = "^3.6"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | migrations
+  | __pycache__
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+skip_glob = ["*/migrations/*", "*/__pycache__/*"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "stabix_backend.settings.local"
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "--reuse-db --cov=apps --cov-report=html --cov-report=term-missing"
