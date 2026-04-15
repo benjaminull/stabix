@@ -38,5 +38,5 @@ RUN mkdir -p staticfiles
 # Expose port
 EXPOSE 8000
 
-# Run migrations and start gunicorn
-CMD ["sh", "-c", "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn stabix_backend.wsgi:application --bind 0.0.0.0:8000 --workers 4 --timeout 120"]
+# Run migrations and start daphne (ASGI - supports WebSockets/Channels)
+CMD ["sh", "-c", "python manage.py migrate && python manage.py collectstatic --noinput && daphne -b 0.0.0.0 -p 8000 stabix_backend.asgi:application"]

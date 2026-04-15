@@ -66,7 +66,11 @@ ENV/
 celerybeat-schedule
 celerybeat.pid
 
+# Test scripts
+test_*.sh
+
 # Misc
 *.bak
 *.tmp
 .cache/
+CREDENTIALS.md

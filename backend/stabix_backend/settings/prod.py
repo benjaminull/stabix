@@ -8,6 +8,10 @@ from .base import *  # noqa
 
 DEBUG = False
 
+# Validate SECRET_KEY is not the insecure default
+if SECRET_KEY.startswith("django-insecure"):  # noqa
+    raise ValueError("DJANGO_SECRET_KEY env var must be set in production")
+
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
 
 # CORS settings
@@ -37,14 +41,6 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "noreply@stabix.com")
 
-# Logging for production
-LOGGING["handlers"]["file"] = {  # noqa
-    "level": "ERROR",
-    "class": "logging.handlers.RotatingFileHandler",
-    "filename": BASE_DIR / "logs" / "django.log",  # noqa
-    "maxBytes": 1024 * 1024 * 10,  # 10MB
-    "backupCount": 5,
-    "formatter": "verbose",
-}
-
-LOGGING["root"]["handlers"].append("file")  # noqa
+# Logging for production - console only (compatible with containers)
+LOGGING["root"]["level"] = "WARNING"  # noqa
+LOGGING["loggers"]["django"]["level"] = "WARNING"  # noqa

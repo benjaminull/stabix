@@ -1,12 +1,8 @@
 """
 Order URLs
+
+All URL patterns are now defined in stabix_backend/api/v1/.
+This file is kept for Django app discovery but contains no patterns.
 """
 
-from django.urls import path
-
-from .views import OrderDetailView, OrderListCreateView
-
-urlpatterns = [
-    path("orders/", OrderListCreateView.as_view(), name="order_list_create"),
-    path("orders/<int:pk>/", OrderDetailView.as_view(), name="order_detail"),
-]
+urlpatterns = []

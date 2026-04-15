@@ -1,15 +1,8 @@
 """
 Chat URLs
+
+All URL patterns are now defined in stabix_backend/api/v1/.
+This file is kept for Django app discovery but contains no patterns.
 """
 
-from django.urls import path
-
-from .views import OrderMessageListCreateView
-
-urlpatterns = [
-    path(
-        "orders/<int:order_id>/messages/",
-        OrderMessageListCreateView.as_view(),
-        name="order_message_list_create",
-    ),
-]
+urlpatterns = []

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User, TokenResponse, apiClient } from '../api/client';
+import { endpoints } from '../api/endpoints';
 
 interface AuthState {
   user: User | null;
@@ -28,7 +29,7 @@ export const useAuthStore = create<AuthState>()(
       login: async (email: string, password: string) => {
         set({ isLoading: true });
         try {
-          const tokens = await apiClient.post<TokenResponse>('/auth/token/', {
+          const tokens = await apiClient.post<TokenResponse>(endpoints.auth.token, {
             email,
             password,
           });
@@ -73,7 +74,7 @@ export const useAuthStore = create<AuthState>()(
         if (!refreshToken) return null;
 
         try {
-          const tokens = await apiClient.post<TokenResponse>('/auth/refresh/', {
+          const tokens = await apiClient.post<TokenResponse>(endpoints.auth.refresh, {
             refresh: refreshToken,
           });
 
@@ -94,7 +95,7 @@ export const useAuthStore = create<AuthState>()(
         if (!accessToken) return;
 
         try {
-          const user = await apiClient.get<User>('/auth/me/', { auth: true });
+          const user = await apiClient.get<User>(endpoints.customer.me, { auth: true });
           set({ user, isLoading: false });
         } catch (error) {
           set({ isLoading: false });

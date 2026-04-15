@@ -1,4 +1,5 @@
 @import 'mapbox-gl/dist/mapbox-gl.css';
+@import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 @tailwind base;
 @tailwind components;
@@ -73,7 +74,6 @@
   @apply !bottom-4;
 }
 
-/* Navigation and Geolocate Controls */
 .mapboxgl-ctrl-group {
   @apply !bg-[#1a2f47] !border-[#FF8C42]/20 !rounded-lg !shadow-lg;
   box-shadow: 0 0 20px rgba(255, 140, 66, 0.15), 0 4px 8px rgba(0, 0, 0, 0.3) !important;
@@ -132,7 +132,6 @@
   border-top-color: #1a2f47 !important;
 }
 
-/* Canvas container */
 .mapboxgl-canvas-container {
   cursor: grab !important;
 }
@@ -141,18 +140,199 @@
   cursor: grabbing !important;
 }
 
-/* Custom scrollbar */
+/* Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-brand-800;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-brand-600 rounded-full hover:bg-brand-700;
+  @apply bg-white/10 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-white/20;
+}
+
+/* ===== React Big Calendar - Clean Dark Theme ===== */
+.rbc-calendar {
+  font-family: var(--font-inter), system-ui, sans-serif;
+  color: #E5E9ED;
+}
+
+/* Toolbar */
+.rbc-toolbar {
+  @apply gap-2 mb-3 pb-3;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.rbc-toolbar button {
+  @apply !bg-transparent !border !border-white/10 !text-white/50 !rounded-md px-3 py-1.5 text-xs font-medium;
+  transition: all 0.15s ease;
+}
+
+.rbc-toolbar button:hover {
+  @apply !bg-white/5 !text-white/80 !border-white/15;
+}
+
+.rbc-toolbar button.rbc-active {
+  @apply !bg-accent-500 !border-accent-500 !text-brand-900 !font-semibold;
+}
+
+.rbc-toolbar-label {
+  @apply text-white/90 font-semibold text-sm;
+}
+
+/* Header */
+.rbc-header {
+  @apply !border-white/5 !py-2 text-white/50 text-xs font-medium uppercase tracking-wide;
+  background: transparent;
+}
+
+.rbc-header + .rbc-header {
+  @apply !border-l-white/5;
+}
+
+/* Today highlight */
+.rbc-today {
+  background: rgba(255, 140, 66, 0.04) !important;
+}
+
+.rbc-off-range-bg {
+  background: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Grid borders */
+.rbc-month-view,
+.rbc-time-view {
+  @apply !border !border-white/5 !rounded-lg overflow-hidden;
+  background: transparent;
+}
+
+.rbc-month-row + .rbc-month-row {
+  @apply !border-t-white/5;
+}
+
+.rbc-day-bg + .rbc-day-bg {
+  @apply !border-l-white/5;
+}
+
+.rbc-time-content {
+  @apply !border-t-white/5;
+}
+
+.rbc-time-content > * + * > * {
+  @apply !border-l-white/5;
+}
+
+.rbc-timeslot-group {
+  @apply !border-b-white/5;
+}
+
+.rbc-time-slot {
+  @apply !border-t-0;
+}
+
+.rbc-time-gutter .rbc-timeslot-group {
+  @apply !border-b-white/5;
+}
+
+.rbc-label {
+  @apply !text-white/25 text-[11px] font-mono;
+}
+
+.rbc-time-header-content {
+  @apply !border-l-white/5;
+}
+
+.rbc-time-header.rbc-overflowing {
+  @apply !border-r-white/5;
+}
+
+.rbc-allday-cell {
+  @apply !border-b-0;
+}
+
+/* Current time */
+.rbc-current-time-indicator {
+  @apply !bg-accent-500;
+  height: 2px;
+}
+
+/* Events - clean, solid colors, high contrast */
+.rbc-event {
+  @apply !rounded-md !border-0;
+  transition: opacity 0.15s ease;
+}
+
+.rbc-event:hover {
+  opacity: 0.85;
+}
+
+.rbc-event-label {
+  @apply text-white/70 text-[10px];
+}
+
+.rbc-event-content {
+  @apply text-white text-xs font-medium;
+}
+
+.rbc-show-more {
+  @apply !text-accent-500 !font-medium text-xs;
+  background: transparent !important;
+}
+
+.rbc-selected {
+  outline: 2px solid rgba(255, 140, 66, 0.6);
+  outline-offset: 1px;
+}
+
+/* Agenda */
+.rbc-agenda-view table.rbc-agenda-table {
+  @apply !border-white/5;
+}
+
+.rbc-agenda-view table.rbc-agenda-table thead > tr > th {
+  @apply !border-b-white/5 !text-white/50 !py-2.5 text-xs font-medium uppercase;
+  background: transparent;
+}
+
+.rbc-agenda-view table.rbc-agenda-table tbody > tr > td {
+  @apply !border-b-0 !py-2.5 !px-3 !text-white/70 text-sm;
+}
+
+.rbc-agenda-view table.rbc-agenda-table tbody > tr + tr {
+  @apply !border-t !border-t-white/5;
+}
+
+.rbc-agenda-date-cell,
+.rbc-agenda-time-cell {
+  @apply !text-white/50 text-xs;
+}
+
+.rbc-agenda-event-cell {
+  @apply !text-white/90 font-medium text-sm;
+}
+
+/* Slot selection */
+.rbc-slot-selection {
+  @apply !bg-accent-500/15 !border !border-accent-500/30 !rounded;
+}
+
+.rbc-date-cell {
+  @apply !text-white/50 !py-1 !px-2;
+}
+
+.rbc-date-cell.rbc-now {
+  @apply !text-accent-500 !font-semibold;
+}
+
+.rbc-button-link {
+  @apply !text-white/50 hover:!text-white transition-colors;
 }
 
 /* Loading skeleton */

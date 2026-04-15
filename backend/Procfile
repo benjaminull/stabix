@@ -1,0 +1,4 @@
+web: daphne -b 0.0.0.0 -p $PORT stabix_backend.asgi:application
+worker: celery -A stabix_backend worker -l info
+beat: celery -A stabix_backend beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+release: python manage.py migrate --noinput && python manage.py collectstatic --noinput

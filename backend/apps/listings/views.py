@@ -6,9 +6,12 @@ from django.contrib.gis.db.models.functions import Distance
 from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import D
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
-from rest_framework import generics
+from rest_framework import generics, status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from apps.users.models import ProviderProfile
+from apps.users.permissions import IsProvider
 from apps.users.serializers import ProviderProfileListSerializer
 
 from .models import Listing
@@ -145,3 +148,66 @@ class ProviderDetailView(generics.RetrieveAPIView):
 
     queryset = ProviderProfile.objects.filter(is_active=True)
     serializer_class = ProviderProfileListSerializer
+
+
+@extend_schema_view(
+    get=extend_schema(tags=["Listings"], description="List active listings for a specific provider (public)")
+)
+class ProviderListingsPublicView(generics.ListAPIView):
+    """Public endpoint to list a provider's active listings"""
+
+    serializer_class = ListingListSerializer
+
+    def get_queryset(self):
+        provider_id = self.kwargs["provider_id"]
+        return Listing.objects.filter(
+            provider_id=provider_id, is_active=True, provider__is_active=True
+        ).select_related("service")
+
+
+@extend_schema_view(
+    get=extend_schema(tags=["Provider Listings"], description="List provider's own listings"),
+    post=extend_schema(tags=["Provider Listings"], description="Create a new listing"),
+)
+class ProviderListingListCreateView(generics.ListCreateAPIView):
+    """
+    GET/POST /api/v1/provider/listings/
+    Lista y crea listings del proveedor actual
+    """
+    serializer_class = ListingSerializer
+    permission_classes = [IsAuthenticated, IsProvider]
+
+    def get_queryset(self):
+        """Solo mostrar listings del proveedor actual"""
+        provider = ProviderProfile.objects.get(user=self.request.user)
+        return Listing.objects.filter(provider=provider).select_related('service')
+
+    def perform_create(self, serializer):
+        """Asignar el proveedor actual al crear un listing"""
+        provider = ProviderProfile.objects.get(user=self.request.user)
+        serializer.save(provider=provider)
+
+
+@extend_schema_view(
+    get=extend_schema(tags=["Provider Listings"], description="Get listing details"),
+    put=extend_schema(tags=["Provider Listings"], description="Update listing"),
+    patch=extend_schema(tags=["Provider Listings"], description="Partially update listing"),
+    delete=extend_schema(tags=["Provider Listings"], description="Delete listing"),
+)
+class ProviderListingDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    GET/PUT/PATCH/DELETE /api/v1/provider/listings/{id}/
+    Gestiona un listing específico del proveedor
+    """
+    serializer_class = ListingSerializer
+    permission_classes = [IsAuthenticated, IsProvider]
+
+    def get_queryset(self):
+        """Solo permitir acceso a listings propios"""
+        provider = ProviderProfile.objects.get(user=self.request.user)
+        return Listing.objects.filter(provider=provider)
+
+    def perform_destroy(self, instance):
+        """En lugar de eliminar, marcar como inactivo"""
+        instance.is_active = False
+        instance.save(update_fields=['is_active'])

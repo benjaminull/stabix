@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiClient, PaginatedResponse, ProviderProfile } from '../client';
+import { endpoints } from '../endpoints';
 
 interface UseProvidersParams {
   lat?: number;
@@ -23,7 +24,7 @@ export function useProviders(params: UseProvidersParams = {}) {
     queryKey: ['providers', params],
     queryFn: () =>
       apiClient.get<PaginatedResponse<ProviderProfile>>(
-        `/providers/${queryString ? `?${queryString}` : ''}`
+        `${endpoints.public.providers}${queryString ? `?${queryString}` : ''}`
       ),
     staleTime: 30 * 1000, // 30 seconds
   });
@@ -32,7 +33,7 @@ export function useProviders(params: UseProvidersParams = {}) {
 export function useProvider(id: number) {
   return useQuery({
     queryKey: ['provider', id],
-    queryFn: () => apiClient.get<ProviderProfile>(`/providers/${id}/`),
+    queryFn: () => apiClient.get<ProviderProfile>(endpoints.public.providerDetail(id)),
     enabled: !!id,
   });
 }

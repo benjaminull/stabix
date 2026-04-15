@@ -1,13 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/lib/store/auth.store';
 import { apiClient, User } from '../client';
+import { endpoints } from '../endpoints';
 
 export function useCurrentUser() {
   const { isAuthenticated } = useAuthStore();
 
   return useQuery({
     queryKey: ['user', 'me'],
-    queryFn: () => apiClient.get<User>('/auth/me/', { auth: true }),
+    queryFn: () => apiClient.get<User>(endpoints.customer.me, { auth: true }),
     enabled: isAuthenticated,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -49,6 +50,6 @@ export function useRegister() {
       first_name?: string;
       last_name?: string;
       phone?: string;
-    }) => apiClient.post('/auth/register/', data),
+    }) => apiClient.post(endpoints.auth.register, data),
   });
 }

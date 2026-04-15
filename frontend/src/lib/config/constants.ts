@@ -24,25 +24,25 @@ export const PRICE_BANDS = {
 } as const;
 
 export const ORDER_STATUS = {
-  created: { label: 'Created', color: 'blue' },
-  paid: { label: 'Paid', color: 'green' },
-  in_progress: { label: 'In Progress', color: 'yellow' },
-  completed: { label: 'Completed', color: 'emerald' },
-  cancelled: { label: 'Cancelled', color: 'red' },
+  created: { label: 'Creada', color: 'blue' },
+  paid: { label: 'Pagada', color: 'green' },
+  in_progress: { label: 'En Progreso', color: 'yellow' },
+  completed: { label: 'Completada', color: 'emerald' },
+  cancelled: { label: 'Cancelada', color: 'red' },
 } as const;
 
 export const JOB_STATUS = {
-  open: { label: 'Open', color: 'blue' },
-  matched: { label: 'Matched', color: 'purple' },
-  ordered: { label: 'Ordered', color: 'green' },
-  cancelled: { label: 'Cancelled', color: 'red' },
+  open: { label: 'Abierta', color: 'blue' },
+  matched: { label: 'Asignada', color: 'purple' },
+  ordered: { label: 'Ordenada', color: 'green' },
+  cancelled: { label: 'Cancelada', color: 'red' },
 } as const;
 
 export const MATCH_STATUS = {
-  pending: { label: 'Pending', color: 'yellow' },
-  accepted: { label: 'Accepted', color: 'green' },
-  rejected: { label: 'Rejected', color: 'red' },
-  expired: { label: 'Expired', color: 'gray' },
+  pending: { label: 'Pendiente', color: 'yellow' },
+  accepted: { label: 'Aceptada', color: 'green' },
+  rejected: { label: 'Rechazada', color: 'red' },
+  expired: { label: 'Expirada', color: 'gray' },
 } as const;
 
 export const ROUTES = {

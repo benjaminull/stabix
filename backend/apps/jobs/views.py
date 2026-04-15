@@ -5,11 +5,14 @@ Job request and matching views
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import generics, status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+
+from apps.users.permissions import IsProvider
 
 from .models import JobRequest, Match
 from .serializers import (
+    GuestBookingSerializer,
     JobRequestSerializer,
     MatchAcceptSerializer,
     MatchSerializer,
@@ -103,7 +106,7 @@ class JobMatchListView(generics.ListAPIView):
     responses={200: MatchSerializer},
 )
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsProvider])
 def accept_match(request, pk):
     """Accept a match (provider endpoint)"""
     try:
@@ -129,7 +132,153 @@ def accept_match(request, pk):
             match.provider_notes = serializer.validated_data["provider_notes"]
         match.save()
 
+        # Crear notificación para el cliente
+        from apps.notifications.utils import notify_match_accepted
+        notify_match_accepted(match.job_request.user, match)
+
+        # Actualizar estado del job request a "matched"
+        match.job_request.status = "matched"
+        match.job_request.save(update_fields=['status'])
+
         response_serializer = MatchSerializer(match)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@extend_schema(
+    tags=["Jobs"],
+    description="Reject a match",
+    request=None,
+    responses={200: MatchSerializer},
+)
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsProvider])
+def reject_match(request, pk):
+    """Reject a match (provider endpoint)"""
+    try:
+        match = Match.objects.get(pk=pk, provider__user=request.user)
+    except Match.DoesNotExist:
+        return Response({"error": "Match not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    if match.status != "pending":
+        return Response(
+            {"error": "Match is not in pending state"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    match.status = "rejected"
+    match.save(update_fields=['status'])
+
+    # Crear notificación para el cliente
+    from apps.notifications.utils import notify_match_rejected
+    notify_match_rejected(match.job_request.user, match)
+
+    response_serializer = MatchSerializer(match)
+    return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+
+@extend_schema_view(
+    get=extend_schema(tags=["Provider Matches"], description="List provider's matches")
+)
+class ProviderMatchListView(generics.ListAPIView):
+    """List matches for the current provider"""
+
+    serializer_class = MatchSerializer
+    permission_classes = [IsAuthenticated, IsProvider]
+
+    def get_queryset(self):
+        from apps.users.models import ProviderProfile
+
+        provider = ProviderProfile.objects.get(user=self.request.user)
+
+        queryset = Match.objects.filter(
+            provider=provider
+        ).select_related(
+            "job_request__service",
+            "job_request__user"
+        ).order_by('-created_at')
+
+        # Filtro por estado
+        status_filter = self.request.query_params.get('status')
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+
+        return queryset
+
+
+@extend_schema(
+    tags=["Bookings"],
+    description="Create a booking (works for guests and authenticated users)",
+    request=GuestBookingSerializer,
+    responses={201: dict},
+)
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def guest_booking(request):
+    """Create a direct booking with a provider. No auth required."""
+    serializer = GuestBookingSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    data = serializer.validated_data
+
+    from django.contrib.gis.geos import Point
+    from apps.users.models import ProviderProfile
+    from apps.listings.models import Listing
+
+    # Validate provider exists
+    try:
+        provider = ProviderProfile.objects.get(pk=data["provider_id"], is_active=True)
+    except ProviderProfile.DoesNotExist:
+        return Response(
+            {"error": "Proveedor no encontrado"}, status=status.HTTP_404_NOT_FOUND
+        )
+
+    # Validate listing if provided
+    listing = None
+    if data.get("listing_id"):
+        try:
+            listing = Listing.objects.get(
+                pk=data["listing_id"], provider=provider, is_active=True
+            )
+        except Listing.DoesNotExist:
+            return Response(
+                {"error": "Servicio no encontrado"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+    # Build job request
+    is_authenticated = request.user and request.user.is_authenticated
+    job_request = JobRequest.objects.create(
+        user=request.user if is_authenticated else None,
+        service_id=data["service"],
+        location=Point(data["location_lng"], data["location_lat"], srid=4326),
+        details=data["details"],
+        preferred_date=data["preferred_date"],
+        preferred_time_slot=data["preferred_time_slot"],
+        guest_name="" if is_authenticated else data["guest_name"],
+        guest_email="" if is_authenticated else data["guest_email"],
+        guest_phone="" if is_authenticated else data["guest_phone"],
+        target_provider=provider,
+        target_listing=listing,
+    )
+
+    # Create direct match
+    match = Match.objects.create(
+        job_request=job_request,
+        provider=provider,
+        score=1.0,
+        status="pending",
+    )
+
+    # Notify provider
+    from apps.notifications.utils import notify_new_match
+    notify_new_match(provider, match)
+
+    return Response(
+        {
+            "booking_ref": f"STB-{job_request.id}",
+            "job_request_id": job_request.id,
+            "match_id": match.id,
+            "status": "pending",
+        },
+        status=status.HTTP_201_CREATED,
+    )

@@ -71,11 +71,20 @@ class MatchSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "job_request", "provider", "score", "created_at", "updated_at"]
 
     def get_job_request_details(self, obj):
-        return {
+        result = {
             "id": obj.job_request.id,
             "service": obj.job_request.service.name,
             "details": obj.job_request.details,
+            "preferred_date": str(obj.job_request.preferred_date) if obj.job_request.preferred_date else None,
+            "budget_estimate": str(obj.job_request.budget_estimate) if obj.job_request.budget_estimate else None,
         }
+        # Expose guest phone if available
+        if hasattr(obj.job_request, "guest_phone") and obj.job_request.guest_phone:
+            result["guest_phone"] = obj.job_request.guest_phone
+        # Expose customer phone if available
+        if obj.job_request.user and obj.job_request.user.phone:
+            result["customer_phone"] = obj.job_request.user.phone
+        return result
 
 
 class MatchAcceptSerializer(serializers.Serializer):
@@ -84,3 +93,19 @@ class MatchAcceptSerializer(serializers.Serializer):
     price_quote = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
     eta_minutes = serializers.IntegerField(required=False)
     provider_notes = serializers.CharField(required=False, allow_blank=True)
+
+
+class GuestBookingSerializer(serializers.Serializer):
+    """Serializer for guest (no-auth) bookings"""
+
+    guest_name = serializers.CharField(max_length=100)
+    guest_email = serializers.EmailField()
+    guest_phone = serializers.CharField(max_length=20)
+    provider_id = serializers.IntegerField()
+    listing_id = serializers.IntegerField(required=False)
+    service = serializers.IntegerField()
+    location_lat = serializers.FloatField()
+    location_lng = serializers.FloatField()
+    details = serializers.CharField(min_length=10)
+    preferred_date = serializers.DateField()
+    preferred_time_slot = serializers.CharField()

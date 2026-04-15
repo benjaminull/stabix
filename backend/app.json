@@ -1,0 +1,61 @@
+{
+  "name": "Stabix API",
+  "description": "Stabix marketplace backend - Django + PostGIS + Channels",
+  "repository": "https://github.com/benjaminull/stabix",
+  "keywords": ["django", "marketplace", "postgis", "geospatial"],
+  "addons": [
+    {
+      "plan": "heroku-postgresql:essential-0",
+      "as": "DATABASE"
+    },
+    {
+      "plan": "heroku-redis:mini",
+      "as": "REDIS"
+    }
+  ],
+  "buildpacks": [
+    {
+      "url": "https://github.com/timanovsky/subdir-heroku-buildpack.git"
+    },
+    {
+      "url": "https://github.com/heroku/heroku-geo-buildpack.git"
+    },
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "eco"
+    },
+    "worker": {
+      "quantity": 1,
+      "size": "eco"
+    }
+  },
+  "env": {
+    "DJANGO_SECRET_KEY": {
+      "description": "Secret key for Django",
+      "generator": "secret"
+    },
+    "DJANGO_SETTINGS_MODULE": {
+      "value": "stabix_backend.settings.heroku"
+    },
+    "PROJECT_PATH": {
+      "description": "Subdirectory for the backend",
+      "value": "backend"
+    },
+    "ALLOWED_HOSTS": {
+      "description": "Comma-separated list of allowed hosts (e.g. your-app.herokuapp.com)",
+      "value": ".herokuapp.com"
+    },
+    "CORS_ALLOWED_ORIGINS": {
+      "description": "Frontend URL for CORS (e.g. https://stabix.vercel.app)",
+      "value": "https://your-frontend.vercel.app"
+    },
+    "DISABLE_COLLECTSTATIC": {
+      "value": "0"
+    }
+  }
+}

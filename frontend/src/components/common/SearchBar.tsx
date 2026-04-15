@@ -35,7 +35,7 @@ export function SearchBar({
           className="pl-10"
         />
       </div>
-      <Button type="submit">Search</Button>
+      <Button type="submit">Buscar</Button>
     </form>
   );
 }

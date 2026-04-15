@@ -1,12 +1,8 @@
 """
 Review URLs
+
+All URL patterns are now defined in stabix_backend/api/v1/.
+This file is kept for Django app discovery but contains no patterns.
 """
 
-from django.urls import path
-
-from .views import OrderReviewCreateView, ProviderReviewListView
-
-urlpatterns = [
-    path("orders/<int:order_id>/reviews/", OrderReviewCreateView.as_view(), name="order_review_create"),
-    path("providers/<int:provider_id>/reviews/", ProviderReviewListView.as_view(), name="provider_review_list"),
-]
+urlpatterns = []

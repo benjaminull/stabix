@@ -12,8 +12,8 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: `${APP_NAME} - On-Demand Services Marketplace`,
-  description: 'Find trusted professionals for any service, anywhere',
+  title: `${APP_NAME} - Marketplace de Servicios a Domicilio`,
+  description: 'Encuentra profesionales de confianza para cualquier servicio, donde sea',
 };
 
 export default function RootLayout({
@@ -22,7 +22,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="es" className="dark">
       <body className={`${inter.variable} ${spaceGrotesk.variable} font-sans antialiased`}>
         <Providers>
           <div className="min-h-screen bg-brand-900">

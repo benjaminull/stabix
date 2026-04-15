@@ -21,7 +21,10 @@ class JobRequest(TimestampedModel):
         ("cancelled", "Cancelled"),
     ]
 
-    user = models.ForeignKey("users.User", on_delete=models.CASCADE, related_name="job_requests")
+    user = models.ForeignKey(
+        "users.User", on_delete=models.CASCADE, related_name="job_requests",
+        null=True, blank=True,
+    )
     service = models.ForeignKey(
         "taxonomy.Service", on_delete=models.CASCADE, related_name="job_requests"
     )
@@ -40,6 +43,22 @@ class JobRequest(TimestampedModel):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="open")
     preferred_date = models.DateTimeField(null=True, blank=True)
 
+    # Guest booking fields
+    guest_name = models.CharField(max_length=100, blank=True)
+    guest_email = models.EmailField(blank=True)
+    guest_phone = models.CharField(max_length=20, blank=True)
+
+    # Direct booking fields
+    target_provider = models.ForeignKey(
+        "users.ProviderProfile", null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="direct_requests",
+    )
+    target_listing = models.ForeignKey(
+        "listings.Listing", null=True, blank=True,
+        on_delete=models.SET_NULL,
+    )
+    preferred_time_slot = models.CharField(max_length=50, blank=True)
+
     class Meta:
         db_table = "job_requests"
         indexes = [
@@ -49,7 +68,8 @@ class JobRequest(TimestampedModel):
         ]
 
     def __str__(self):
-        return f"Job #{self.id} - {self.service.name} by {self.user.email}"
+        requester = self.user.email if self.user else self.guest_email or "Guest"
+        return f"Job #{self.id} - {self.service.name} by {requester}"
 
 
 class Match(TimestampedModel):

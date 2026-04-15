@@ -1,13 +1,17 @@
 'use client';
 
+import { useState } from 'react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Star, MapPin, CheckCircle2, Clock, Shield } from 'lucide-react';
+import { Star, MapPin, CheckCircle2, Clock, Shield, CalendarCheck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useProvider } from '@/lib/api/hooks/useProviders';
 import { useProviderReviews } from '@/lib/api/hooks/useReviews';
-import { formatRating, formatDistance } from '@/lib/utils/format';
+import { useProviderPublicListings } from '@/lib/api/hooks/usePublicListings';
+import { formatRating, formatDistance, formatCurrency } from '@/lib/utils/format';
 import { PRICE_BANDS } from '@/lib/config/constants';
 import { ProviderSchedule } from '@/components/providers/ProviderSchedule';
 
@@ -17,6 +21,12 @@ export default function ProviderProfilePage() {
 
   const { data: provider, isLoading: isLoadingProvider, error: providerError } = useProvider(providerId);
   const { data: reviews, isLoading: isLoadingReviews } = useProviderReviews(providerId);
+  const { data: listingsData } = useProviderPublicListings(providerId);
+  const listings = listingsData?.results || [];
+
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedSlot, setSelectedSlot] = useState<string>('');
+  const [selectedListing, setSelectedListing] = useState<number | null>(null);
 
   if (isLoadingProvider) {
     return <ProviderProfileSkeleton />;
@@ -135,6 +145,46 @@ export default function ProviderProfilePage() {
             </CardContent>
           </Card>
 
+          {/* Available Services */}
+          {listings.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Servicios Disponibles</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {listings.map((listing) => (
+                    <div
+                      key={listing.id}
+                      className={`rounded-lg border p-4 transition-colors cursor-pointer ${
+                        selectedListing === listing.id
+                          ? 'border-accent-500 bg-accent-50/10'
+                          : 'hover:border-accent-300'
+                      }`}
+                      onClick={() => setSelectedListing(listing.id)}
+                    >
+                      <h4 className="font-semibold text-foreground">{listing.title}</h4>
+                      <p className="text-sm text-muted-foreground mt-1">{listing.service_name}</p>
+                      <div className="flex items-center justify-between mt-3">
+                        <span className="text-lg font-bold text-accent-400">
+                          {formatCurrency(Number(listing.base_price))}
+                          <span className="text-sm font-normal text-muted-foreground">
+                            /{listing.price_unit}
+                          </span>
+                        </span>
+                        <Link
+                          href={`/providers/${providerId}/book?listing=${listing.id}&date=${selectedDate.toISOString().split('T')[0]}${selectedSlot ? `&slot=${encodeURIComponent(selectedSlot)}` : ''}`}
+                        >
+                          <Button size="sm">Reservar</Button>
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Reviews Section */}
           <Card>
             <CardHeader>
@@ -187,8 +237,8 @@ export default function ProviderProfilePage() {
           </Card>
         </div>
 
-        {/* Right column - Schedule */}
-        <div className="lg:col-span-1">
+        {/* Right column - Schedule + CTA */}
+        <div className="lg:col-span-1 space-y-4">
           <Card className="sticky top-4">
             <CardHeader>
               <CardTitle>Agenda</CardTitle>
@@ -197,7 +247,22 @@ export default function ProviderProfilePage() {
               <ProviderSchedule
                 providerId={providerId}
                 availability={provider.availability}
+                onDateSelect={setSelectedDate}
+                onSlotSelect={setSelectedSlot}
+                selectedSlot={selectedSlot}
               />
+
+              {/* Booking CTA */}
+              <div className="mt-6 pt-4 border-t">
+                <Link
+                  href={`/providers/${providerId}/book?${selectedListing ? `listing=${selectedListing}&` : ''}date=${selectedDate.toISOString().split('T')[0]}${selectedSlot ? `&slot=${encodeURIComponent(selectedSlot)}` : ''}`}
+                >
+                  <Button className="w-full bg-gradient-to-r from-[#FF8C42] to-[#FFD166] text-[#0D213B] font-semibold hover:shadow-lg transition-all">
+                    <CalendarCheck className="mr-2 h-4 w-4" />
+                    Reservar Servicio
+                  </Button>
+                </Link>
+              </div>
             </CardContent>
           </Card>
         </div>

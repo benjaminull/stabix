@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { LogIn, Mail, Lock } from 'lucide-react';
@@ -11,8 +11,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Logo } from '@/components/brand/Logo';
 import toast from 'react-hot-toast';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const loginMutation = useLogin();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,7 +29,8 @@ export default function LoginPage() {
     try {
       await loginMutation.mutateAsync({ email, password });
       toast.success('Bienvenido de vuelta!');
-      router.push('/dashboard');
+      const next = searchParams.get('next') || '/dashboard';
+      router.push(next);
     } catch (error: any) {
       toast.error(error.message || 'Error al iniciar sesion');
     }
@@ -132,5 +134,13 @@ export default function LoginPage() {
         </Card>
       </motion.div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }
