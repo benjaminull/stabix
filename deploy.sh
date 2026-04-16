@@ -49,7 +49,7 @@ sleep 15
 echo "[5/5] Running migrations and seed..."
 
 # 5. Run seed data
-docker compose -f docker-compose.prod.yml exec api python manage.py seed
+docker compose -f docker-compose.prod.yml --env-file .env.production exec api python manage.py seed
 
 echo ""
 echo "══════════════════════════════════════════════"
