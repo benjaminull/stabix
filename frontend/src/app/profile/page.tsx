@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store/auth.store';
 import { apiClient, User } from '@/lib/api/client';
@@ -24,8 +24,13 @@ export default function ProfilePage() {
     phone: user?.phone || '',
   });
 
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      router.replace('/login?next=/profile');
+    }
+  }, [isAuthenticated, user, router]);
+
   if (!isAuthenticated || !user) {
-    router.replace('/login?next=/profile');
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
