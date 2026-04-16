@@ -24,11 +24,10 @@ export function Header() {
 
   if (!isAuthenticated) {
     navigation.push({ name: 'Soy Proveedor', href: '/login?next=/provider/dashboard' });
+  } else if (isProvider) {
+    navigation.push({ name: 'Mi Panel', href: '/provider/dashboard' });
   } else {
-    navigation.push({ name: 'Mis Reservas', href: '/dashboard' });
-    if (isProvider) {
-      navigation.push({ name: 'Panel Proveedor', href: '/provider/dashboard' });
-    }
+    navigation.push({ name: 'Mi Panel', href: '/dashboard' });
   }
 
   return (

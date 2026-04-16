@@ -14,6 +14,7 @@ interface ProvidersMapProps {
   height?: string;
   highlightedProviderId?: number | null;
   onProviderHover?: (providerId: number | null) => void;
+  className?: string;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -61,6 +62,7 @@ export function ProvidersMap({
   height = '500px',
   highlightedProviderId,
   onProviderHover,
+  className,
 }: ProvidersMapProps) {
   const router = useRouter();
   const [viewState, setViewState] = useState({
@@ -125,7 +127,7 @@ export function ProvidersMap({
   return (
     <div
       style={{ height, width: '100%' }}
-      className="rounded-lg overflow-hidden border border-[#FF8C42]/20 shadow-lg shadow-[#FF8C42]/10 relative"
+      className={className ?? "rounded-lg overflow-hidden border border-[#FF8C42]/20 shadow-lg shadow-[#FF8C42]/10 relative"}
     >
       {!MAPBOX_TOKEN ? (
         <div className="h-full flex items-center justify-center bg-[#0D213B]">
