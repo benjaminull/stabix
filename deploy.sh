@@ -21,6 +21,9 @@ echo "════════════════════════�
 DJANGO_SECRET_KEY=$(openssl rand -base64 50 | tr -dc 'a-zA-Z0-9' | head -c 50)
 POSTGRES_PASSWORD=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | head -c 32)
 
+# Mapbox token (for map display)
+read -p "Mapbox token (paste your pk.* token): " MAPBOX_TOKEN
+
 echo "[1/5] Generating .env.production..."
 
 # 2. Create .env.production from template
@@ -28,6 +31,7 @@ cp .env.production.sin-dominio .env.production
 sed -i "s|TU_IP_DEL_VPS|${VPS_IP}|g" .env.production
 sed -i "s|CAMBIA_ESTO_PASSWORD_SEGURO|${POSTGRES_PASSWORD}|g" .env.production
 sed -i "s|CAMBIA_ESTO_GENERA_UNO_NUEVO|${DJANGO_SECRET_KEY}|g" .env.production
+sed -i "s|\${MAPBOX_TOKEN}|${MAPBOX_TOKEN}|g" .env.production
 
 echo "[2/5] Setting up Caddyfile (no SSL)..."
 
