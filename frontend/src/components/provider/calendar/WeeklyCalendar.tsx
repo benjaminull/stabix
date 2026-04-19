@@ -80,6 +80,16 @@ export default function WeeklyCalendar({
 
   const { data: calendarData, isLoading } = useCalendarView(dateRange);
 
+  const getTitle = (apt: Appointment): string => {
+    if (apt.appointment_type === "order" && apt.order_details) {
+      return `${apt.client_info.name} · $${apt.order_details.amount}`;
+    }
+    if (apt.appointment_type === "external") {
+      return `${apt.client_name} · ${apt.service_description.slice(0, 25)}`;
+    }
+    return apt.notes || "Personal";
+  };
+
   const events: CalendarEvent[] = useMemo(() => {
     if (!calendarData?.appointments_by_date) return [];
     const all: CalendarEvent[] = [];
@@ -96,16 +106,6 @@ export default function WeeklyCalendar({
     });
     return all;
   }, [calendarData]);
-
-  const getTitle = (apt: Appointment): string => {
-    if (apt.appointment_type === "order" && apt.order_details) {
-      return `${apt.client_info.name} · $${apt.order_details.amount}`;
-    }
-    if (apt.appointment_type === "external") {
-      return `${apt.client_name} · ${apt.service_description.slice(0, 25)}`;
-    }
-    return apt.notes || "Personal";
-  };
 
   const eventStyleGetter = useCallback((event: CalendarEvent) => {
     const { appointment_type, status } = event.resource;

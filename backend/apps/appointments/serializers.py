@@ -71,7 +71,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "provider", "duration_minutes", "created_at", "updated_at"]
 
     def get_client_info(self, obj):
         """Get unified client info"""

@@ -75,7 +75,20 @@ class APIClient {
       const error = await response.json().catch(() => ({
         detail: response.statusText,
       }));
-      throw new Error(error.detail || `HTTP ${response.status}`);
+      if (error.detail) {
+        throw new Error(error.detail);
+      }
+      if (error.error) {
+        throw new Error(error.error);
+      }
+      // Handle DRF field-level validation errors: { "field": ["msg"] }
+      if (typeof error === 'object') {
+        const messages = Object.entries(error)
+          .map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(', ') : val}`)
+          .join('; ');
+        if (messages) throw new Error(messages);
+      }
+      throw new Error(`HTTP ${response.status}`);
     }
 
     // Handle 204 No Content

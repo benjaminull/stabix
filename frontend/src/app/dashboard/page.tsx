@@ -85,7 +85,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="relative h-[calc(100dvh-64px)] bg-[#0D213B]">
+    <div className="relative h-[calc(100dvh-3rem)] bg-[#0D213B]">
       {/* Full-screen map */}
       <div className="absolute inset-0">
         <ProvidersMap

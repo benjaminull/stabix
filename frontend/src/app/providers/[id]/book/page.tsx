@@ -1,36 +1,49 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import toast from 'react-hot-toast';
-import { MapPin, Calendar, User, Phone, Mail, FileText } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import {
+  MapPin,
+  Calendar,
+  User,
+  Phone,
+  Mail,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  Loader2,
+  Star,
+  Shield,
+  Clock,
+  Sparkles,
+  Sun,
+  Sunset,
+} from 'lucide-react';
 import { useProvider } from '@/lib/api/hooks/useProviders';
 import { useProviderPublicListings } from '@/lib/api/hooks/usePublicListings';
 import { useGuestBooking } from '@/lib/api/hooks/useGuestBooking';
 import { useServices } from '@/lib/api/hooks/useTaxonomy';
 import { useAuthStore } from '@/lib/store/auth.store';
-import { formatCurrency } from '@/lib/utils/format';
+import { formatCurrency, formatRating } from '@/lib/utils/format';
 import { MAPBOX_TOKEN } from '@/lib/config/constants';
 
-const bookingSchema = z.object({
-  guest_name: z.string().min(2, 'Nombre es requerido'),
-  guest_email: z.string().email('Email inválido'),
-  guest_phone: z.string().min(8, 'Teléfono inválido'),
-  listing_id: z.number().optional(),
-  service: z.number().min(1, 'Selecciona un servicio'),
-  address: z.string().min(5, 'Dirección es requerida'),
-  details: z.string().min(10, 'Proporciona al menos 10 caracteres'),
-  preferred_date: z.string().min(1, 'Selecciona una fecha'),
-  preferred_time_slot: z.string().min(1, 'Selecciona un horario'),
-});
+type Step = 1 | 2 | 3 | 4;
 
-type BookingFormData = z.infer<typeof bookingSchema>;
+interface FormState {
+  listing_id?: number;
+  service: number;
+  preferred_date: string;
+  preferred_time_slot: string;
+  guest_name: string;
+  guest_email: string;
+  guest_phone: string;
+  address: string;
+  location_lat: number | null;
+  location_lng: number | null;
+  details: string;
+}
 
 export default function BookingPage() {
   const params = useParams();
@@ -52,75 +65,53 @@ export default function BookingPage() {
   const preselectedDate = searchParams.get('date') || '';
   const preselectedSlot = searchParams.get('slot') || '';
 
-  const [locationCoords, setLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [step, setStep] = useState<Step>(1);
+  const [form, setForm] = useState<FormState>({
+    listing_id: preselectedListingId,
+    service: 0,
+    preferred_date: preselectedDate,
+    preferred_time_slot: preselectedSlot,
+    guest_name: '',
+    guest_email: '',
+    guest_phone: '',
+    address: '',
+    location_lat: null,
+    location_lng: null,
+    details: '',
+  });
+
   const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // Find the preselected listing to get its service
-  const preselectedListing = listings.find((l) => l.id === preselectedListingId);
-  const preselectedService = preselectedListing
-    ? servicesData?.results?.find((s) => s.name === preselectedListing.service_name)
-    : undefined;
-
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<BookingFormData>({
-    resolver: zodResolver(bookingSchema),
-    defaultValues: {
-      guest_name: '',
-      guest_email: '',
-      guest_phone: '',
-      listing_id: preselectedListingId,
-      service: 0,
-      address: '',
-      details: '',
-      preferred_date: preselectedDate,
-      preferred_time_slot: preselectedSlot,
-    },
-  });
-
-  // Pre-fill if authenticated
+  // Pre-fill user data
   useEffect(() => {
     if (isAuthenticated && user) {
-      setValue('guest_name', `${user.first_name} ${user.last_name}`.trim() || user.username);
-      setValue('guest_email', user.email);
-      if (user.phone) setValue('guest_phone', user.phone);
+      setForm((f) => ({
+        ...f,
+        guest_name: `${user.first_name} ${user.last_name}`.trim() || user.username,
+        guest_email: user.email,
+        guest_phone: user.phone || f.guest_phone,
+      }));
     }
-  }, [isAuthenticated, user, setValue]);
+  }, [isAuthenticated, user]);
 
   // Set service from preselected listing
   useEffect(() => {
-    if (preselectedService) {
-      setValue('service', preselectedService.id);
-    }
-  }, [preselectedService, setValue]);
-
-  // Set preselected listing_id once listings load
-  useEffect(() => {
-    if (preselectedListingId) {
-      setValue('listing_id', preselectedListingId);
-    }
-  }, [preselectedListingId, setValue]);
-
-  const watchedListingId = watch('listing_id');
-  const watchedAddress = watch('address');
-
-  // When listing changes, update service
-  useEffect(() => {
-    if (watchedListingId) {
-      const listing = listings.find((l) => l.id === watchedListingId);
+    if (preselectedListingId && listings.length > 0 && servicesData?.results) {
+      const listing = listings.find((l) => l.id === preselectedListingId);
       if (listing) {
-        const service = servicesData?.results?.find((s) => s.name === listing.service_name);
-        if (service) setValue('service', service.id);
+        const svc = servicesData.results.find((s) => s.name === listing.service_name);
+        if (svc) setForm((f) => ({ ...f, service: svc.id }));
       }
     }
-  }, [watchedListingId, listings, servicesData, setValue]);
+  }, [preselectedListingId, listings, servicesData]);
 
-  // Geocoding with Mapbox
+  const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
+    setForm((f) => ({ ...f, [key]: value }));
+
+  const selectedListing = listings.find((l) => l.id === form.listing_id);
+
+  // Geocoding
   const geocodeAddress = async (query: string) => {
     if (!MAPBOX_TOKEN || query.length < 3) {
       setAddressSuggestions([]);
@@ -139,301 +130,553 @@ export default function BookingPage() {
   };
 
   const selectAddress = (feature: any) => {
-    setValue('address', feature.place_name);
-    setLocationCoords({
-      lng: feature.center[0],
-      lat: feature.center[1],
-    });
+    setForm((f) => ({
+      ...f,
+      address: feature.place_name,
+      location_lng: feature.center[0],
+      location_lat: feature.center[1],
+    }));
     setShowSuggestions(false);
   };
 
-  const onSubmit = async (data: BookingFormData) => {
-    if (!locationCoords) {
-      toast.error('Selecciona una dirección válida del listado');
+  // Validation per step
+  const canStep1 = form.service > 0 || !!form.listing_id;
+  const canStep2 = !!form.preferred_date && !!form.preferred_time_slot;
+  const canStep3 =
+    form.guest_name.trim().length >= 2 &&
+    form.guest_email.includes('@') &&
+    form.guest_phone.length >= 8 &&
+    form.address.length >= 5 &&
+    form.location_lat !== null &&
+    form.details.trim().length >= 10;
+
+  const goNext = () => setStep((s) => Math.min(s + 1, 4) as Step);
+  const goBack = () => {
+    if (step === 1) router.back();
+    else setStep((s) => (s - 1) as Step);
+  };
+
+  const handleSubmit = async () => {
+    if (!form.location_lat || !form.location_lng) {
+      toast.error('Selecciona una dirección válida');
       return;
     }
-
     try {
       const result = await guestBooking.mutateAsync({
-        guest_name: data.guest_name,
-        guest_email: data.guest_email,
-        guest_phone: data.guest_phone,
+        guest_name: form.guest_name,
+        guest_email: form.guest_email,
+        guest_phone: form.guest_phone,
         provider_id: providerId,
-        listing_id: data.listing_id,
-        service: data.service,
-        location_lat: locationCoords.lat,
-        location_lng: locationCoords.lng,
-        details: data.details,
-        preferred_date: data.preferred_date,
-        preferred_time_slot: data.preferred_time_slot,
+        listing_id: form.listing_id,
+        service: form.service,
+        location_lat: form.location_lat,
+        location_lng: form.location_lng,
+        details: form.details,
+        preferred_date: form.preferred_date,
+        preferred_time_slot: form.preferred_time_slot,
       });
-
       router.push(
-        `/booking/confirmation?ref=${result.booking_ref}&provider=${encodeURIComponent(provider?.user_email || '')}&date=${data.preferred_date}&slot=${encodeURIComponent(data.preferred_time_slot)}`
+        `/booking/confirmation?ref=${result.booking_ref}&provider=${encodeURIComponent(provider?.user_email || '')}&date=${form.preferred_date}&slot=${encodeURIComponent(form.preferred_time_slot)}`
       );
-    } catch (error) {
-      toast.error('Error al crear la reserva. Intenta de nuevo.');
+    } catch (err: any) {
+      toast.error(err?.message || 'Error al crear la reserva');
     }
   };
 
-  const selectedListing = listings.find((l) => l.id === watchedListingId);
+  // Generate next 14 days for date picker
+  const dateOptions = useMemo(() => {
+    const days: { value: string; label: string; weekday: string }[] = [];
+    const today = new Date();
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      days.push({
+        value: d.toISOString().split('T')[0],
+        label: d.getDate().toString(),
+        weekday: d.toLocaleDateString('es-CL', { weekday: 'short' }).replace('.', ''),
+      });
+    }
+    return days;
+  }, []);
+
+  const stepLabels = ['Servicio', 'Fecha', 'Datos', 'Confirmar'];
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="font-display text-3xl font-bold mb-8">Reservar Servicio</h1>
+    <div className="min-h-[calc(100dvh-3rem)] bg-[#0D213B]">
+      {/* Header */}
+      <div className="sticky top-12 z-30 bg-[#0D213B]/95 backdrop-blur-xl border-b border-white/[0.06]">
+        <div className="max-w-2xl mx-auto px-4 py-3">
+          {/* Provider mini-info */}
+          {provider && (
+            <div className="flex items-center gap-3 mb-3">
+              <button
+                onClick={goBack}
+                className="p-2 -ml-2 rounded-xl text-white/40 hover:text-white hover:bg-white/[0.06] transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-white truncate">
+                  Reservar con {provider.user_email}
+                </p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  {provider.is_verified && (
+                    <span className="flex items-center gap-0.5 text-[10px] text-emerald-400">
+                      <Shield className="w-3 h-3" /> Verificado
+                    </span>
+                  )}
+                  {provider.total_reviews > 0 && (
+                    <span className="flex items-center gap-0.5 text-[10px] text-amber-400">
+                      <Star className="w-3 h-3 fill-current" /> {formatRating(provider.average_rating)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
-      <div className="grid gap-8 lg:grid-cols-3">
-        {/* Form */}
-        <div className="lg:col-span-2">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Service Selection */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Servicio</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {listings.length > 0 ? (
-                  <select
-                    className="w-full rounded-md border border-input bg-background px-3 py-2"
-                    value={watchedListingId || ''}
-                    onChange={(e) => {
-                      const val = e.target.value ? parseInt(e.target.value, 10) : undefined;
-                      setValue('listing_id', val);
-                    }}
-                  >
-                    <option value="">Selecciona un servicio</option>
-                    {listings.map((listing) => (
-                      <option key={listing.id} value={listing.id}>
-                        {listing.title} - {formatCurrency(Number(listing.base_price))}/{listing.price_unit}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <select
-                    {...register('service', { valueAsNumber: true })}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2"
-                  >
-                    <option value="">Selecciona un servicio</option>
-                    {servicesData?.results?.map((service) => (
-                      <option key={service.id} value={service.id}>
-                        {service.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-                {errors.service && (
-                  <p className="mt-1 text-sm text-destructive">{errors.service.message}</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Date & Time */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Fecha y Horario
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="mb-2 block text-sm font-medium">Fecha preferida</label>
-                  <Input
-                    type="date"
-                    {...register('preferred_date')}
-                    min={new Date().toISOString().split('T')[0]}
+          {/* Progress */}
+          <div className="flex items-center gap-1.5">
+            {stepLabels.map((label, i) => {
+              const s = i + 1;
+              const active = s === step;
+              const done = s < step;
+              return (
+                <div key={label} className="flex-1">
+                  <div
+                    className={`h-1 rounded-full transition-all duration-500 ${
+                      done
+                        ? 'bg-gradient-to-r from-[#FF8C42] to-[#FFD166]'
+                        : active
+                        ? 'bg-[#FF8C42]/60'
+                        : 'bg-white/[0.06]'
+                    }`}
                   />
-                  {errors.preferred_date && (
-                    <p className="mt-1 text-sm text-destructive">{errors.preferred_date.message}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium">Horario preferido</label>
-                  <select
-                    {...register('preferred_time_slot')}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2"
+                  <p
+                    className={`text-[10px] mt-1 font-medium transition-colors ${
+                      active ? 'text-[#FFD166]' : done ? 'text-white/40' : 'text-white/20'
+                    }`}
                   >
-                    <option value="">Selecciona un horario</option>
-                    <option value="Mañana (9:00 - 13:00)">Mañana (9:00 - 13:00)</option>
-                    <option value="Tarde (14:00 - 18:00)">Tarde (14:00 - 18:00)</option>
-                  </select>
-                  {errors.preferred_time_slot && (
-                    <p className="mt-1 text-sm text-destructive">{errors.preferred_time_slot.message}</p>
-                  )}
+                    {label}
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
+              );
+            })}
+          </div>
+        </div>
+      </div>
 
-            {/* Contact Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Información de Contacto
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="mb-2 block text-sm font-medium">Nombre completo</label>
-                  <Input {...register('guest_name')} placeholder="Tu nombre" />
-                  {errors.guest_name && (
-                    <p className="mt-1 text-sm text-destructive">{errors.guest_name.message}</p>
-                  )}
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="mb-2 block text-sm font-medium flex items-center gap-1">
-                      <Mail className="h-3.5 w-3.5" /> Email
-                    </label>
-                    <Input {...register('guest_email')} type="email" placeholder="tu@email.com" />
-                    {errors.guest_email && (
-                      <p className="mt-1 text-sm text-destructive">{errors.guest_email.message}</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-sm font-medium flex items-center gap-1">
-                      <Phone className="h-3.5 w-3.5" /> Teléfono
-                    </label>
-                    <Input {...register('guest_phone')} placeholder="+56 9 XXXX XXXX" />
-                    {errors.guest_phone && (
-                      <p className="mt-1 text-sm text-destructive">{errors.guest_phone.message}</p>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+      {/* Content */}
+      <div className="max-w-2xl mx-auto px-4 py-6">
+        {/* ===== Step 1: Service ===== */}
+        {step === 1 && (
+          <div className="animate-in fade-in slide-in-from-right-4 duration-300 space-y-4">
+            <p className="text-white/50 text-sm">
+              {listings.length > 0 ? 'Elige el servicio que necesitas' : 'Selecciona un servicio'}
+            </p>
+
+            {listings.length > 0 ? (
+              <div className="space-y-2.5">
+                {listings.map((listing) => {
+                  const selected = form.listing_id === listing.id;
+                  return (
+                    <button
+                      key={listing.id}
+                      onClick={() => {
+                        set('listing_id', listing.id);
+                        const svc = servicesData?.results?.find((s) => s.name === listing.service_name);
+                        if (svc) set('service', svc.id);
+                      }}
+                      className={`w-full text-left p-4 rounded-2xl border transition-all duration-200 ${
+                        selected
+                          ? 'bg-[#FF8C42]/10 border-[#FF8C42]/40'
+                          : 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.06] hover:border-white/[0.12]'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className={`text-sm font-medium ${selected ? 'text-[#FFD166]' : 'text-white'}`}>
+                            {listing.title}
+                          </p>
+                          <p className="text-xs text-white/35 mt-0.5">{listing.service_name}</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className={`text-sm font-bold ${selected ? 'text-[#FF8C42]' : 'text-emerald-400'}`}>
+                            {formatCurrency(Number(listing.base_price))}
+                            <span className="text-[10px] font-normal text-white/30">/{listing.price_unit}</span>
+                          </span>
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                            selected
+                              ? 'border-[#FF8C42] bg-[#FF8C42]'
+                              : 'border-white/20'
+                          }`}>
+                            {selected && <Check className="w-3 h-3 text-[#0D213B]" />}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {servicesData?.results?.map((svc) => {
+                  const selected = form.service === svc.id;
+                  return (
+                    <button
+                      key={svc.id}
+                      onClick={() => set('service', svc.id)}
+                      className={`w-full text-left p-4 rounded-2xl border transition-all duration-200 ${
+                        selected
+                          ? 'bg-[#FF8C42]/10 border-[#FF8C42]/40'
+                          : 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.06]'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className={`text-sm font-medium ${selected ? 'text-[#FFD166]' : 'text-white'}`}>
+                          {svc.name}
+                        </p>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                          selected ? 'border-[#FF8C42] bg-[#FF8C42]' : 'border-white/20'
+                        }`}>
+                          {selected && <Check className="w-3 h-3 text-[#0D213B]" />}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            <StepButton onClick={goNext} disabled={!canStep1} label="Siguiente" />
+          </div>
+        )}
+
+        {/* ===== Step 2: Date & Time ===== */}
+        {step === 2 && (
+          <div className="animate-in fade-in slide-in-from-right-4 duration-300 space-y-5">
+            <p className="text-white/50 text-sm">¿Cuándo te viene bien?</p>
+
+            {/* Date scroll */}
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-white/70 mb-3">
+                <Calendar className="w-4 h-4 text-white/30" />
+                Fecha
+              </label>
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1">
+                {dateOptions.map((d) => {
+                  const selected = form.preferred_date === d.value;
+                  const isToday = d.value === new Date().toISOString().split('T')[0];
+                  return (
+                    <button
+                      key={d.value}
+                      onClick={() => set('preferred_date', d.value)}
+                      className={`flex flex-col items-center min-w-[3.5rem] py-2.5 px-2 rounded-2xl border transition-all duration-200 shrink-0 ${
+                        selected
+                          ? 'bg-[#FF8C42] border-[#FF8C42] text-[#0D213B]'
+                          : 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.06] text-white'
+                      }`}
+                    >
+                      <span className={`text-[10px] uppercase font-medium ${
+                        selected ? 'text-[#0D213B]/70' : 'text-white/35'
+                      }`}>
+                        {isToday ? 'Hoy' : d.weekday}
+                      </span>
+                      <span className={`text-lg font-bold leading-none mt-1 ${
+                        selected ? 'text-[#0D213B]' : 'text-white'
+                      }`}>
+                        {d.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Time slots */}
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-white/70 mb-3">
+                <Clock className="w-4 h-4 text-white/30" />
+                Horario
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { value: 'Mañana (9:00 - 13:00)', label: 'Mañana', time: '9:00 - 13:00', Icon: Sun },
+                  { value: 'Tarde (14:00 - 18:00)', label: 'Tarde', time: '14:00 - 18:00', Icon: Sunset },
+                ].map(({ value, label, time, Icon }) => {
+                  const selected = form.preferred_time_slot === value;
+                  return (
+                    <button
+                      key={value}
+                      onClick={() => set('preferred_time_slot', value)}
+                      className={`flex items-center gap-3 p-4 rounded-2xl border transition-all duration-200 ${
+                        selected
+                          ? 'bg-[#FF8C42]/10 border-[#FF8C42]/40'
+                          : 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.06]'
+                      }`}
+                    >
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                        selected ? 'bg-[#FF8C42]/20' : 'bg-white/[0.06]'
+                      }`}>
+                        <Icon className={`w-5 h-5 ${selected ? 'text-[#FF8C42]' : 'text-white/40'}`} />
+                      </div>
+                      <div className="text-left">
+                        <p className={`text-sm font-medium ${selected ? 'text-[#FFD166]' : 'text-white'}`}>
+                          {label}
+                        </p>
+                        <p className="text-[11px] text-white/30">{time}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <StepButton onClick={goNext} disabled={!canStep2} label="Siguiente" />
+          </div>
+        )}
+
+        {/* ===== Step 3: Contact + Address + Details ===== */}
+        {step === 3 && (
+          <div className="animate-in fade-in slide-in-from-right-4 duration-300 space-y-5">
+            <p className="text-white/50 text-sm">Completa tus datos</p>
+
+            {/* Contact */}
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-sm font-medium text-white/70">
+                <User className="w-4 h-4 text-white/30" />
+                Información de contacto
+              </label>
+              <FormInput
+                icon={<User className="w-4 h-4" />}
+                placeholder="Nombre completo"
+                value={form.guest_name}
+                onChange={(v) => set('guest_name', v)}
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <FormInput
+                  icon={<Mail className="w-4 h-4" />}
+                  placeholder="Email"
+                  value={form.guest_email}
+                  onChange={(v) => set('guest_email', v)}
+                  type="email"
+                />
+                <FormInput
+                  icon={<Phone className="w-4 h-4" />}
+                  placeholder="+56 9 XXXX XXXX"
+                  value={form.guest_phone}
+                  onChange={(v) => set('guest_phone', v)}
+                  type="tel"
+                />
+              </div>
+            </div>
 
             {/* Address */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
-                  Dirección del Servicio
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="relative">
-                  <Input
-                    {...register('address')}
-                    placeholder="Ingresa la dirección donde se realizará el servicio"
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-sm font-medium text-white/70">
+                <MapPin className="w-4 h-4 text-white/30" />
+                Dirección del servicio
+              </label>
+              <div className="relative">
+                <div className="flex items-center bg-white/[0.04] border border-white/[0.08] rounded-2xl overflow-hidden focus-within:border-[#FF8C42]/40 transition-colors">
+                  <MapPin className="w-4 h-4 text-white/25 ml-4 shrink-0" />
+                  <input
+                    type="text"
+                    value={form.address}
                     onChange={(e) => {
-                      register('address').onChange(e);
+                      set('address', e.target.value);
                       geocodeAddress(e.target.value);
                     }}
                     onFocus={() => addressSuggestions.length > 0 && setShowSuggestions(true)}
+                    placeholder="Ingresa la dirección"
                     autoComplete="off"
+                    className="flex-1 bg-transparent text-sm text-white placeholder:text-white/20 px-3 py-3 focus:outline-none"
                   />
-                  {showSuggestions && addressSuggestions.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                      {addressSuggestions.map((feature: any) => (
-                        <button
-                          key={feature.id}
-                          type="button"
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-accent-50/10 transition-colors"
-                          onClick={() => selectAddress(feature)}
-                        >
-                          {feature.place_name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
-                {errors.address && (
-                  <p className="mt-1 text-sm text-destructive">{errors.address.message}</p>
-                )}
-                {locationCoords && (
-                  <div className="mt-3 rounded-md bg-accent-50/10 p-3 text-sm text-muted-foreground">
-                    <MapPin className="inline h-4 w-4 mr-1" />
-                    Ubicación confirmada ({locationCoords.lat.toFixed(4)}, {locationCoords.lng.toFixed(4)})
+                {showSuggestions && addressSuggestions.length > 0 && (
+                  <div className="absolute z-20 w-full mt-1 bg-[#0D213B] border border-white/10 rounded-xl shadow-xl overflow-hidden">
+                    {addressSuggestions.map((feature: any) => (
+                      <button
+                        key={feature.id}
+                        type="button"
+                        onClick={() => selectAddress(feature)}
+                        className="w-full text-left px-4 py-3 text-sm text-white/70 hover:bg-white/[0.06] hover:text-white transition-colors border-b border-white/[0.04] last:border-0"
+                      >
+                        <MapPin className="w-3 h-3 inline mr-2 text-[#FF8C42]" />
+                        {feature.place_name}
+                      </button>
+                    ))}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+              {form.location_lat && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-xs text-emerald-400/80">Ubicación confirmada</span>
+                </div>
+              )}
+            </div>
 
             {/* Details */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Detalles Adicionales
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <textarea
-                  {...register('details')}
-                  rows={4}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2"
-                  placeholder="Describe lo que necesitas, instrucciones especiales, etc."
-                />
-                {errors.details && (
-                  <p className="mt-1 text-sm text-destructive">{errors.details.message}</p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Button
-              type="submit"
-              className="w-full bg-gradient-to-r from-[#FF8C42] to-[#FFD166] text-[#0D213B] font-semibold text-lg py-6 hover:shadow-lg transition-all"
-              disabled={guestBooking.isPending}
-            >
-              {guestBooking.isPending ? 'Procesando...' : 'Confirmar Reserva'}
-            </Button>
-          </form>
-        </div>
-
-        {/* Summary Sidebar */}
-        <div className="lg:col-span-1">
-          <Card className="sticky top-4">
-            <CardHeader>
-              <CardTitle>Resumen</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {provider && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Proveedor</p>
-                  <p className="font-semibold">{provider.user_email}</p>
-                </div>
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-sm font-medium text-white/70">
+                <FileText className="w-4 h-4 text-white/30" />
+                ¿Qué necesitas?
+              </label>
+              <textarea
+                value={form.details}
+                onChange={(e) => set('details', e.target.value)}
+                rows={3}
+                placeholder="Describe lo que necesitas, instrucciones especiales..."
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-2xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-[#FF8C42]/40 resize-none transition-colors"
+              />
+              {form.details.length > 0 && form.details.length < 10 && (
+                <p className="text-[11px] text-red-400/70">Mínimo 10 caracteres</p>
               )}
-              {selectedListing && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Servicio</p>
-                  <p className="font-semibold">{selectedListing.title}</p>
-                  <p className="text-accent-400 font-bold">
+            </div>
+
+            <StepButton onClick={goNext} disabled={!canStep3} label="Revisar reserva" />
+          </div>
+        )}
+
+        {/* ===== Step 4: Confirm ===== */}
+        {step === 4 && (
+          <div className="animate-in fade-in slide-in-from-right-4 duration-300 space-y-4">
+            <p className="text-white/50 text-sm">Revisa tu reserva antes de confirmar</p>
+
+            {/* Summary */}
+            <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] overflow-hidden">
+              {/* Service */}
+              <div className="px-5 py-4 border-b border-white/[0.06] bg-gradient-to-r from-[#FF8C42]/10 to-transparent">
+                <p className="text-[10px] uppercase tracking-wider text-[#FF8C42] font-semibold mb-1">Servicio</p>
+                <p className="text-base font-semibold text-white">
+                  {selectedListing?.title || servicesData?.results?.find((s) => s.id === form.service)?.name}
+                </p>
+                {selectedListing && (
+                  <p className="text-sm font-bold text-emerald-400 mt-0.5">
                     {formatCurrency(Number(selectedListing.base_price))}/{selectedListing.price_unit}
                   </p>
+                )}
+              </div>
+
+              {/* Date & time */}
+              <div className="px-5 py-3 border-b border-white/[0.06] flex items-center gap-6">
+                <SummaryField
+                  label="Fecha"
+                  value={new Date(form.preferred_date + 'T12:00:00').toLocaleDateString('es-CL', {
+                    weekday: 'short',
+                    day: 'numeric',
+                    month: 'short',
+                  })}
+                />
+                <SummaryField label="Horario" value={form.preferred_time_slot.split(' (')[0]} />
+              </div>
+
+              {/* Contact */}
+              <div className="px-5 py-3 border-b border-white/[0.06] space-y-1">
+                <SummaryField label="Nombre" value={form.guest_name} />
+                <div className="flex gap-6">
+                  <SummaryField label="Email" value={form.guest_email} />
+                  <SummaryField label="Teléfono" value={form.guest_phone} />
                 </div>
-              )}
-              {watch('preferred_date') && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Fecha</p>
-                  <p className="font-semibold">
-                    {new Date(watch('preferred_date') + 'T12:00:00').toLocaleDateString('es-ES', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })}
-                  </p>
-                </div>
-              )}
-              {watch('preferred_time_slot') && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Horario</p>
-                  <p className="font-semibold">{watch('preferred_time_slot')}</p>
-                </div>
-              )}
-              {!isAuthenticated && (
-                <div className="border-t pt-4 mt-4">
-                  <p className="text-xs text-muted-foreground">
-                    No necesitas cuenta para reservar. Si deseas hacer seguimiento de tus reservas,
-                    puedes crear una cuenta después.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+              </div>
+
+              {/* Address & details */}
+              <div className="px-5 py-3 space-y-1">
+                <SummaryField label="Dirección" value={form.address} />
+                <SummaryField label="Detalles" value={form.details} />
+              </div>
+            </div>
+
+            {/* Info */}
+            <div className="flex items-start gap-3 p-4 rounded-2xl bg-[#FF8C42]/[0.06] border border-[#FF8C42]/10">
+              <Sparkles className="w-4 h-4 text-[#FF8C42] mt-0.5 shrink-0" />
+              <p className="text-xs text-white/50 leading-relaxed">
+                El proveedor recibirá tu solicitud y te contactará para confirmar los detalles.
+                {!isAuthenticated && ' No necesitas cuenta para reservar.'}
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={() => setStep(3)}
+                className="flex-1 py-3.5 rounded-2xl text-sm font-medium text-white/40 hover:text-white hover:bg-white/[0.04] transition-colors"
+              >
+                Editar
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={guestBooking.isPending}
+                className="flex-[2] flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-semibold bg-gradient-to-r from-[#FF8C42] to-[#FFD166] text-[#0D213B] hover:brightness-110 hover:shadow-lg hover:shadow-[#FF8C42]/20 transition-all disabled:opacity-50"
+              >
+                {guestBooking.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Reservando...
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Confirmar Reserva
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+/* ===== Small reusable components ===== */
+
+function StepButton({ onClick, disabled, label }: { onClick: () => void; disabled: boolean; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-semibold transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed bg-gradient-to-r from-[#FF8C42] to-[#FFD166] text-[#0D213B] hover:brightness-110 hover:shadow-lg hover:shadow-[#FF8C42]/20"
+    >
+      {label}
+      <ChevronRight className="w-4 h-4" />
+    </button>
+  );
+}
+
+function FormInput({
+  icon,
+  placeholder,
+  value,
+  onChange,
+  type = 'text',
+}: {
+  icon: React.ReactNode;
+  placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+}) {
+  return (
+    <div className="flex items-center bg-white/[0.04] border border-white/[0.08] rounded-2xl overflow-hidden focus-within:border-[#FF8C42]/40 transition-colors">
+      <span className="text-white/25 ml-4 shrink-0">{icon}</span>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="flex-1 bg-transparent text-sm text-white placeholder:text-white/20 px-3 py-3 focus:outline-none"
+      />
+    </div>
+  );
+}
+
+function SummaryField({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[10px] uppercase tracking-wider text-white/30 font-semibold">{label}</p>
+      <p className="text-sm text-white/70 mt-0.5">{value}</p>
     </div>
   );
 }

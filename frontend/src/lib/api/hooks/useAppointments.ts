@@ -96,7 +96,7 @@ export function useWorkingHours() {
   return useQuery({
     queryKey: ["working-hours"],
     queryFn: () =>
-      apiClient.get<WorkingHours[]>("/provider/calendar/working-hours/", { auth: true }),
+      apiClient.get<WorkingHours[]>("/v1/provider/calendar/working-hours/", { auth: true }),
   });
 }
 
@@ -110,7 +110,7 @@ export function useCreateWorkingHours() {
       end_time: string;
       is_active?: boolean;
     }) =>
-      apiClient.post<WorkingHours>("/provider/calendar/working-hours/", data, { auth: true }),
+      apiClient.post<WorkingHours>("/v1/provider/calendar/working-hours/", data, { auth: true }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["working-hours"] });
     },
@@ -122,7 +122,7 @@ export function useUpdateWorkingHours() {
 
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<WorkingHours> }) =>
-      apiClient.patch<WorkingHours>(`/provider/calendar/working-hours/${id}/`, data, { auth: true }),
+      apiClient.patch<WorkingHours>(`/v1/provider/calendar/working-hours/${id}/`, data, { auth: true }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["working-hours"] });
     },
@@ -134,7 +134,7 @@ export function useDeleteWorkingHours() {
 
   return useMutation({
     mutationFn: (id: number) =>
-      apiClient.delete(`/provider/calendar/working-hours/${id}/`, { auth: true }),
+      apiClient.delete(`/v1/provider/calendar/working-hours/${id}/`, { auth: true }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["working-hours"] });
     },
@@ -152,7 +152,7 @@ export function useAppointments(params?: {
     queryKey: ["appointments", params],
     queryFn: () =>
       apiClient.get<Appointment[]>(
-        `/provider/calendar/appointments/${toQueryString(params)}`,
+        `/v1/provider/calendar/appointments/${toQueryString(params)}`,
         { auth: true }
       ),
   });
@@ -166,7 +166,7 @@ export function useCalendarView(params: {
     queryKey: ["calendar-view", params],
     queryFn: () =>
       apiClient.get<CalendarViewData>(
-        `/provider/calendar/appointments/calendar_view/${toQueryString(params)}`,
+        `/v1/provider/calendar/appointments/calendar_view/${toQueryString(params)}`,
         { auth: true }
       ),
   });
@@ -176,7 +176,7 @@ export function useAppointment(id: number) {
   return useQuery({
     queryKey: ["appointment", id],
     queryFn: () =>
-      apiClient.get<Appointment>(`/provider/calendar/appointments/${id}/`, { auth: true }),
+      apiClient.get<Appointment>(`/v1/provider/calendar/appointments/${id}/`, { auth: true }),
     enabled: !!id,
   });
 }
@@ -194,7 +194,7 @@ export function useCreateAppointment() {
       end_datetime: string;
       notes?: string;
     }) =>
-      apiClient.post<Appointment>("/provider/calendar/appointments/", data, { auth: true }),
+      apiClient.post<Appointment>("/v1/provider/calendar/appointments/", data, { auth: true }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
       queryClient.invalidateQueries({ queryKey: ["calendar-view"] });
@@ -207,7 +207,7 @@ export function useUpdateAppointment() {
 
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<Appointment> }) =>
-      apiClient.patch<Appointment>(`/provider/calendar/appointments/${id}/`, data, { auth: true }),
+      apiClient.patch<Appointment>(`/v1/provider/calendar/appointments/${id}/`, data, { auth: true }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
       queryClient.invalidateQueries({ queryKey: ["calendar-view"] });
@@ -221,7 +221,7 @@ export function useUpdateAppointmentStatus() {
   return useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) =>
       apiClient.post<Appointment>(
-        `/provider/calendar/appointments/${id}/update_status/`,
+        `/v1/provider/calendar/appointments/${id}/update_status/`,
         { status },
         { auth: true }
       ),
@@ -237,7 +237,7 @@ export function useDeleteAppointment() {
 
   return useMutation({
     mutationFn: (id: number) =>
-      apiClient.delete(`/provider/calendar/appointments/${id}/`, { auth: true }),
+      apiClient.delete(`/v1/provider/calendar/appointments/${id}/`, { auth: true }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
       queryClient.invalidateQueries({ queryKey: ["calendar-view"] });
@@ -251,7 +251,7 @@ export function useTimeSlotProposals(params?: { status?: string }) {
     queryKey: ["time-slot-proposals", params],
     queryFn: () =>
       apiClient.get<TimeSlotProposal[]>(
-        `/provider/calendar/proposals/${toQueryString(params)}`,
+        `/v1/provider/calendar/proposals/${toQueryString(params)}`,
         { auth: true }
       ),
   });
@@ -261,7 +261,7 @@ export function usePendingProposals() {
   return useQuery({
     queryKey: ["pending-proposals"],
     queryFn: () =>
-      apiClient.get<TimeSlotProposal[]>("/provider/calendar/proposals/pending/", { auth: true }),
+      apiClient.get<TimeSlotProposal[]>("/v1/provider/calendar/proposals/pending/", { auth: true }),
   });
 }
 
@@ -281,7 +281,7 @@ export function useRespondToProposal() {
       accept?: boolean;
     }) =>
       apiClient.post(
-        `/provider/calendar/proposals/${id}/respond/`,
+        `/v1/provider/calendar/proposals/${id}/respond/`,
         { selected_datetime, provider_notes, accept },
         { auth: true }
       ),

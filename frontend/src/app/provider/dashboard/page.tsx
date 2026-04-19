@@ -134,8 +134,14 @@ export default function ProviderDashboardPage() {
     if (!form.date || !form.start_time || !form.end_time) {
       toast.error('Completa fecha y hora'); return;
     }
-    const start_datetime = `${form.date}T${form.start_time}:00`;
-    const end_datetime = `${form.date}T${form.end_time}:00`;
+    // Build timezone-aware ISO 8601 datetime strings
+    const tzOffset = new Date().getTimezoneOffset();
+    const sign = tzOffset <= 0 ? '+' : '-';
+    const absH = String(Math.floor(Math.abs(tzOffset) / 60)).padStart(2, '0');
+    const absM = String(Math.abs(tzOffset) % 60).padStart(2, '0');
+    const tz = `${sign}${absH}:${absM}`;
+    const start_datetime = `${form.date}T${form.start_time}:00${tz}`;
+    const end_datetime = `${form.date}T${form.end_time}:00${tz}`;
     if (end_datetime <= start_datetime) {
       toast.error('La hora de fin debe ser después del inicio'); return;
     }
@@ -150,7 +156,10 @@ export default function ProviderDashboardPage() {
       });
       toast.success('Cita creada');
       closeForm();
-    } catch { toast.error('Error al crear la cita'); }
+    } catch (err: any) {
+      console.error('Appointment creation error:', err);
+      toast.error(err?.message || 'Error al crear la cita');
+    }
   };
 
   const handleAcceptMatch = async () => {
@@ -167,7 +176,7 @@ export default function ProviderDashboardPage() {
       toast.success('Solicitud aceptada');
       setAcceptingMatch(null);
       setQuoteData({ price_quote: '', eta_minutes: '', provider_notes: '' });
-    } catch { toast.error('Error al aceptar'); }
+    } catch (err: any) { toast.error(err?.message || 'Error al aceptar'); }
   };
 
   const handleRejectMatch = async (id: number) => {
@@ -175,14 +184,14 @@ export default function ProviderDashboardPage() {
     try {
       await rejectMatch.mutateAsync(id);
       toast.success('Solicitud rechazada');
-    } catch { toast.error('Error al rechazar'); }
+    } catch (err: any) { toast.error(err?.message || 'Error al rechazar'); }
   };
 
   const handleUpdateOrder = async (orderId: number, newStatus: string) => {
     try {
       await updateOrderStatus.mutateAsync({ id: orderId, new_status: newStatus });
       toast.success('Estado actualizado');
-    } catch { toast.error('Error al actualizar'); }
+    } catch (err: any) { toast.error(err?.message || 'Error al actualizar'); }
   };
 
   const set = (key: keyof FormData, value: string) => setForm((p) => ({ ...p, [key]: value }));
@@ -484,7 +493,7 @@ export default function ProviderDashboardPage() {
                     onClick={async () => {
                       if (!confirm('¿Eliminar esta cita?')) return;
                       try { await deleteAppointment.mutateAsync(selectedAppointment.id); toast.success('Eliminada'); setSelectedAppointment(null); }
-                      catch { toast.error('Error'); }
+                      catch (err: any) { toast.error(err?.message || 'Error al eliminar'); }
                     }}
                     className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-medium text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                   >
@@ -496,7 +505,7 @@ export default function ProviderDashboardPage() {
                 <button
                   onClick={async () => {
                     try { await updateAppointmentStatus.mutateAsync({ id: selectedAppointment.id, status: 'confirmed' }); toast.success('Confirmada'); setSelectedAppointment(null); }
-                    catch { toast.error('Error'); }
+                    catch (err: any) { toast.error(err?.message || 'Error al confirmar'); }
                   }}
                   className="flex-1 bg-accent-500 text-brand-900 py-2.5 rounded-xl text-sm font-semibold hover:bg-accent-400 transition-colors"
                 >
