@@ -80,11 +80,13 @@ class AppointmentSerializer(serializers.ModelSerializer):
     def get_order_details(self, obj):
         """Get order details if linked"""
         if obj.order:
+            jr = obj.order.job_request
             return {
                 "id": obj.order.id,
                 "amount": str(obj.order.amount),
                 "status": obj.order.status,
-                "job_request_id": obj.order.job_request.id,
+                "job_request_id": jr.id,
+                "service_name": jr.service.name if jr.service else "",
             }
         return None
 

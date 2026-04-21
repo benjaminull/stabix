@@ -28,6 +28,7 @@ class ListingSerializer(serializers.ModelSerializer):
             "description",
             "base_price",
             "price_unit",
+            "estimated_duration_minutes",
             "is_active",
             "created_at",
             "updated_at",
@@ -49,5 +50,6 @@ class ListingListSerializer(serializers.ModelSerializer):
             "service_name",
             "base_price",
             "price_unit",
+            "estimated_duration_minutes",
             "provider_rating",
         ]

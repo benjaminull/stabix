@@ -4,6 +4,7 @@ Public URL patterns: categories, services, providers, listings (no auth required
 
 from django.urls import path
 
+from apps.appointments.available_slots import provider_available_slots
 from apps.jobs.views import guest_booking
 from apps.taxonomy.views import ServiceCategoryListView, ServiceListView
 from apps.listings.views import (
@@ -24,6 +25,7 @@ urlpatterns = [
     path("providers/<int:pk>/", ProviderDetailView.as_view(), name="provider_detail"),
     path("providers/<int:provider_id>/reviews/", ProviderReviewListView.as_view(), name="provider_review_list"),
     path("providers/<int:provider_id>/listings/", ProviderListingsPublicView.as_view(), name="provider_public_listings"),
+    path("providers/<int:provider_id>/available-slots/", provider_available_slots, name="provider_available_slots"),
     # Listings
     path("listings/", ListingListView.as_view(), name="listing_list"),
     path("listings/<int:pk>/", ListingDetailView.as_view(), name="listing_detail"),

@@ -34,6 +34,9 @@ export function useAcceptMatch() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['provider', 'matches'] });
       queryClient.invalidateQueries({ queryKey: ['provider', 'dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['calendar-view'] });
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['provider', 'orders'] });
     },
   });
 }

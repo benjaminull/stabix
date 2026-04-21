@@ -56,7 +56,7 @@ class AppointmentViewSet(viewsets.ModelViewSet):
 
         queryset = Appointment.objects.filter(
             provider=self.request.user.provider_profile
-        ).select_related("order", "order__job_request", "order__job_request__user")
+        ).select_related("order", "order__job_request", "order__job_request__user", "order__job_request__service")
 
         # Filter by date range (for calendar view)
         start_date = self.request.query_params.get("start_date")

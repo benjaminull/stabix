@@ -58,6 +58,9 @@ class JobRequest(TimestampedModel):
         on_delete=models.SET_NULL,
     )
     preferred_time_slot = models.CharField(max_length=50, blank=True)
+    start_datetime = models.DateTimeField(null=True, blank=True, help_text="Proposed start time")
+    end_datetime = models.DateTimeField(null=True, blank=True, help_text="Proposed end time")
+    duration_minutes = models.PositiveIntegerField(default=60, help_text="Service duration in minutes")
 
     class Meta:
         db_table = "job_requests"

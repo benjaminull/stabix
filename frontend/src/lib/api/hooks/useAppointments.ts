@@ -37,6 +37,7 @@ export interface Appointment {
     amount: string;
     status: string;
     job_request_id: number;
+    service_name?: string;
   } | null;
   client_name: string;
   client_phone: string;

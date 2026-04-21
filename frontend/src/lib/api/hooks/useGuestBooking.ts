@@ -13,7 +13,10 @@ export interface GuestBookingData {
   location_lng: number;
   details: string;
   preferred_date: string;
-  preferred_time_slot: string;
+  preferred_time_slot?: string;
+  start_datetime?: string;
+  end_datetime?: string;
+  duration_minutes?: number;
 }
 
 export interface BookingResponse {

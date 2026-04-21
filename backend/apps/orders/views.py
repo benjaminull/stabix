@@ -144,6 +144,17 @@ def update_order_status(request, pk):
 
     order.save()
 
+    # Sync appointment status with order status
+    ORDER_TO_APPOINTMENT_STATUS = {
+        'in_progress': 'in_progress',
+        'completed': 'completed',
+        'cancelled': 'cancelled',
+    }
+    apt_status = ORDER_TO_APPOINTMENT_STATUS.get(new_status)
+    if apt_status and hasattr(order, 'appointment'):
+        order.appointment.status = apt_status
+        order.appointment.save(update_fields=['status', 'updated_at'])
+
     # Crear notificaciones
     customer = order.job_request.user
     if new_status == 'completed':

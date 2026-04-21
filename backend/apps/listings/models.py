@@ -30,6 +30,9 @@ class Listing(TimestampedModel):
     price_unit = models.CharField(
         max_length=50, default="per hour", help_text="e.g., 'per hour', 'per job', 'per sqft'"
     )
+    estimated_duration_minutes = models.PositiveIntegerField(
+        default=60, help_text="Estimated service duration in minutes"
+    )
     is_active = models.BooleanField(default=True)
 
     class Meta:

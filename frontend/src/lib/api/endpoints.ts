@@ -18,6 +18,7 @@ export const endpoints = {
     listings: '/v1/public/listings/',
     listingDetail: (id: number) => `/v1/public/listings/${id}/`,
     providerListings: (id: number) => `/v1/public/providers/${id}/listings/`,
+    providerAvailableSlots: (id: number) => `/v1/public/providers/${id}/available-slots/`,
     book: '/v1/public/book/',
   },
   customer: {

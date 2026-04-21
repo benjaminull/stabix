@@ -123,10 +123,19 @@ class Appointment(TimestampedModel):
     def client(self):
         """Get client info (from order or external)"""
         if self.appointment_type == "order" and self.order:
+            customer = self.order.customer
+            if customer:
+                return {
+                    "name": customer.get_full_name(),
+                    "email": customer.email,
+                    "phone": customer.phone or "",
+                }
+            # Guest booking — pull from job_request guest fields
+            jr = self.order.job_request
             return {
-                "name": self.order.customer.get_full_name(),
-                "email": self.order.customer.email,
-                "phone": self.order.customer.phone or "",
+                "name": jr.guest_name or "Cliente",
+                "email": jr.guest_email or "",
+                "phone": jr.guest_phone or "",
             }
         return {
             "name": self.client_name,

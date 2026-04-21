@@ -132,13 +132,29 @@ def accept_match(request, pk):
             match.provider_notes = serializer.validated_data["provider_notes"]
         match.save()
 
-        # Crear notificación para el cliente
-        from apps.notifications.utils import notify_match_accepted
-        notify_match_accepted(match.job_request.user, match)
+        # Crear notificación para el cliente (solo si tiene usuario registrado)
+        if match.job_request.user:
+            from apps.notifications.utils import notify_match_accepted
+            notify_match_accepted(match.job_request.user, match)
 
-        # Actualizar estado del job request a "matched"
-        match.job_request.status = "matched"
+        # Actualizar estado del job request a "ordered"
+        match.job_request.status = "ordered"
         match.job_request.save(update_fields=['status'])
+
+        # Auto-crear la orden (dispara signal que crea el Appointment)
+        from apps.orders.models import Order
+        job = match.job_request
+        # Price priority: provider quote > listing base_price > client estimate
+        amount = match.price_quote or 0
+        if not amount and job.target_listing:
+            amount = job.target_listing.base_price
+        if not amount:
+            amount = job.budget_estimate or 0
+        Order.objects.create(
+            job_request=job,
+            match=match,
+            amount=amount,
+        )
 
         response_serializer = MatchSerializer(match)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
@@ -170,9 +186,10 @@ def reject_match(request, pk):
     match.status = "rejected"
     match.save(update_fields=['status'])
 
-    # Crear notificación para el cliente
-    from apps.notifications.utils import notify_match_rejected
-    notify_match_rejected(match.job_request.user, match)
+    # Crear notificación para el cliente (solo si tiene usuario registrado)
+    if match.job_request.user:
+        from apps.notifications.utils import notify_match_rejected
+        notify_match_rejected(match.job_request.user, match)
 
     response_serializer = MatchSerializer(match)
     return Response(response_serializer.data, status=status.HTTP_200_OK)
@@ -247,13 +264,18 @@ def guest_booking(request):
 
     # Build job request
     is_authenticated = request.user and request.user.is_authenticated
+    # Resolve service: prefer listing's service if available
+    service_id = listing.service_id if listing else data["service"]
     job_request = JobRequest.objects.create(
         user=request.user if is_authenticated else None,
-        service_id=data["service"],
+        service_id=service_id,
         location=Point(data["location_lng"], data["location_lat"], srid=4326),
         details=data["details"],
         preferred_date=data["preferred_date"],
-        preferred_time_slot=data["preferred_time_slot"],
+        preferred_time_slot=data.get("preferred_time_slot", ""),
+        start_datetime=data.get("start_datetime"),
+        end_datetime=data.get("end_datetime"),
+        duration_minutes=data.get("duration_minutes", 60),
         guest_name="" if is_authenticated else data["guest_name"],
         guest_email="" if is_authenticated else data["guest_email"],
         guest_phone="" if is_authenticated else data["guest_phone"],
