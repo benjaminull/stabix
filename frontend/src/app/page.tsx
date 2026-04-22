@@ -54,7 +54,7 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col bg-[#0D213B]">
-      <section className="relative h-[100dvh] overflow-hidden">
+      <section className="relative h-[calc(100dvh-3rem)] overflow-hidden">
         {/* ===== PRE-REVEAL: blurred map background ===== */}
         {!transitionDone && (
           <>
