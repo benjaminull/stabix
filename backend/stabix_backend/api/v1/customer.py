@@ -11,7 +11,7 @@ from apps.jobs.views import (
     JobMatchListView,
     run_job_matching,
 )
-from apps.orders.views import OrderDetailView, OrderListCreateView
+from apps.orders.views import OrderDetailView, OrderListCreateView, create_payment_preference
 from apps.reviews.views import OrderReviewCreateView
 from apps.chat.views import OrderMessageListCreateView
 
@@ -26,6 +26,7 @@ urlpatterns = [
     # Orders
     path("orders/", OrderListCreateView.as_view(), name="order_list_create"),
     path("orders/<int:pk>/", OrderDetailView.as_view(), name="order_detail"),
+    path("orders/<int:pk>/pay/", create_payment_preference, name="order_pay"),
     # Reviews
     path("orders/<int:order_id>/reviews/", OrderReviewCreateView.as_view(), name="order_review_create"),
     # Messages

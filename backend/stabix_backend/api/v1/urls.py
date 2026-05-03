@@ -10,4 +10,6 @@ urlpatterns = [
     path("customer/", include("stabix_backend.api.v1.customer")),
     path("provider/", include("stabix_backend.api.v1.provider")),
     path("common/", include("stabix_backend.api.v1.common")),
+    path("admin/", include("stabix_backend.api.v1.admin_api")),
+    path("payments/", include("stabix_backend.api.v1.payments")),
 ]

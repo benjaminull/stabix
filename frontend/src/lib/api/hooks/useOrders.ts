@@ -18,6 +18,17 @@ export function useOrder(id: number) {
   });
 }
 
+export function useCreatePayment() {
+  return useMutation({
+    mutationFn: (orderId: number) =>
+      apiClient.post<{ init_point: string; sandbox_init_point: string }>(
+        endpoints.customer.orderPay(orderId),
+        {},
+        { auth: true }
+      ),
+  });
+}
+
 export function useCreateOrder() {
   const queryClient = useQueryClient();
 

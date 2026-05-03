@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { User, LogOut, LogIn, Bell, LayoutDashboard, UserCircle } from 'lucide-react';
+import { User, LogOut, LogIn, Bell, LayoutDashboard, UserCircle, Shield } from 'lucide-react';
 import { useAuthStore } from '@/lib/store/auth.store';
 import { useUnreadNotificationsCount } from '@/lib/api/hooks/useNotifications';
 import { Logo } from '@/components/brand/Logo';
@@ -98,6 +98,17 @@ export function Header() {
                         >
                           <LayoutDashboard className="w-3.5 h-3.5" />
                           Mi Panel
+                        </Link>
+                      )}
+
+                      {user.is_staff && (
+                        <Link
+                          href="/panel"
+                          onClick={() => setMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 text-xs text-white/60 hover:text-[#FFD166] hover:bg-white/5 transition-colors"
+                        >
+                          <Shield className="w-3.5 h-3.5" />
+                          Admin
                         </Link>
                       )}
 

@@ -1,8 +1,10 @@
 'use client';
 
-import { use } from 'react';
+import { use, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useOrder } from '@/lib/api/hooks/useOrders';
+import { useCreatePayment } from '@/lib/api/hooks/useOrders';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,8 +12,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ChatPanel } from '@/components/common/ChatPanel';
 import { ORDER_STATUS } from '@/lib/config/constants';
 import { formatDate, formatCurrency } from '@/lib/utils/format';
-import { ArrowLeft, DollarSign, Calendar, User, Star } from 'lucide-react';
+import { ArrowLeft, DollarSign, Calendar, User, Star, CreditCard, Loader2 } from 'lucide-react';
 import { AuthGuard } from '@/components/auth/AuthGuard';
+import toast from 'react-hot-toast';
 
 const STATUS_STEPS = ['created', 'paid', 'in_progress', 'completed'] as const;
 
@@ -45,7 +48,36 @@ function StatusTimeline({ currentStatus }: { currentStatus: string }) {
 export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const orderId = parseInt(id);
-  const { data: order, isLoading, error } = useOrder(orderId);
+  const searchParams = useSearchParams();
+  const { data: order, isLoading, error, refetch } = useOrder(orderId);
+  const createPayment = useCreatePayment();
+
+  // Handle payment status callback from MercadoPago
+  useEffect(() => {
+    const paymentStatus = searchParams.get('payment_status');
+    if (!paymentStatus) return;
+
+    if (paymentStatus === 'approved') {
+      toast.success('Pago procesado correctamente');
+      refetch();
+    } else if (paymentStatus === 'failure') {
+      toast.error('El pago no pudo ser procesado');
+    } else if (paymentStatus === 'pending') {
+      toast('Pago en proceso, te notificaremos cuando se confirme');
+      refetch();
+    }
+  }, [searchParams, refetch]);
+
+  const handlePay = () => {
+    createPayment.mutate(orderId, {
+      onSuccess: (data) => {
+        window.location.href = data.sandbox_init_point;
+      },
+      onError: (err) => {
+        toast.error((err as Error).message || 'Error al iniciar el pago');
+      },
+    });
+  };
 
   if (isLoading) {
     return (
@@ -127,6 +159,22 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
           {/* Status Timeline */}
           <StatusTimeline currentStatus={order.status} />
+
+          {/* Pay button */}
+          {order.status === 'created' && (
+            <Button
+              onClick={handlePay}
+              disabled={createPayment.isPending}
+              className="w-full mt-2"
+            >
+              {createPayment.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <CreditCard className="h-4 w-4 mr-2" />
+              )}
+              Pagar con MercadoPago
+            </Button>
+          )}
 
           {/* Review button */}
           {order.status === 'completed' && (

@@ -21,6 +21,7 @@ SECRET_KEY = os.getenv(
 # Application definition
 INSTALLED_APPS = [
     "daphne",  # Channels ASGI server - must be first
+    "jazzmin",  # Admin theme - must be before django.contrib.admin
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -114,7 +115,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "es-cl"
 TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
@@ -133,6 +134,86 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Custom user model
 AUTH_USER_MODEL = "users.User"
+
+# Jazzmin Admin Theme
+JAZZMIN_SETTINGS = {
+    "site_title": "Stabix",
+    "site_header": "Stabix",
+    "site_brand": "Stabix",
+    "welcome_sign": "Bienvenido a Stabix Admin",
+    "copyright": "Stabix",
+    "search_model": ["users.User", "users.ProviderProfile"],
+    "topmenu_links": [
+        {"name": "Ver sitio", "url": "/", "new_window": True},
+        {"name": "API Docs", "url": "/api/docs/", "new_window": True},
+    ],
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    "hide_apps": ["auth", "django_celery_beat"],
+    "hide_models": ["chat.Message"],
+    "icons": {
+        "users.User": "fas fa-users",
+        "users.ProviderProfile": "fas fa-hard-hat",
+        "taxonomy.ServiceCategory": "fas fa-th-large",
+        "taxonomy.Service": "fas fa-concierge-bell",
+        "listings.Listing": "fas fa-store",
+        "jobs.JobRequest": "fas fa-clipboard-list",
+        "jobs.Match": "fas fa-handshake",
+        "orders.Order": "fas fa-shopping-cart",
+        "reviews.Review": "fas fa-star",
+        "notifications.Notification": "fas fa-bell",
+        "appointments.Appointment": "fas fa-calendar-check",
+        "appointments.WorkingHours": "fas fa-clock",
+        "appointments.TimeSlotProposal": "fas fa-calendar-alt",
+    },
+    "order_with_respect_to": [
+        "users",
+        "taxonomy",
+        "listings",
+        "jobs",
+        "orders",
+        "reviews",
+        "appointments",
+        "notifications",
+    ],
+    "default_icon_parents": "fas fa-folder",
+    "default_icon_children": "fas fa-circle",
+    "related_modal_active": True,
+    "use_google_fonts_cdn": True,
+    "show_ui_builder": False,
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "navbar_small_text": False,
+    "footer_small_text": True,
+    "body_small_text": False,
+    "brand_small_text": False,
+    "brand_colour": False,
+    "accent": "accent-warning",
+    "navbar": "navbar-dark",
+    "no_navbar_border": True,
+    "navbar_fixed": True,
+    "layout_boxed": False,
+    "footer_fixed": False,
+    "sidebar_fixed": True,
+    "sidebar": "sidebar-dark-warning",
+    "sidebar_nav_small_text": False,
+    "sidebar_disable_expand": False,
+    "sidebar_nav_child_indent": True,
+    "sidebar_nav_compact_style": False,
+    "sidebar_nav_legacy_style": False,
+    "sidebar_nav_flat_style": False,
+    "theme": "darkly",
+    "dark_mode_theme": "darkly",
+    "button_classes": {
+        "primary": "btn-primary",
+        "secondary": "btn-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+        "success": "btn-success",
+    },
+}
 
 # Django REST Framework
 REST_FRAMEWORK = {
@@ -250,3 +331,8 @@ LOGGING = {
         },
     },
 }
+
+# MercadoPago
+MERCADOPAGO_ACCESS_TOKEN = os.getenv("MERCADOPAGO_ACCESS_TOKEN", "")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")

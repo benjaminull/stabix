@@ -30,6 +30,7 @@ export const endpoints = {
     orders: '/v1/customer/orders/',
     orderDetail: (id: number) => `/v1/customer/orders/${id}/`,
     orderReview: (orderId: number) => `/v1/customer/orders/${orderId}/reviews/`,
+    orderPay: (id: number) => `/v1/customer/orders/${id}/pay/`,
     orderMessages: (orderId: number) => `/v1/customer/orders/${orderId}/messages/`,
   },
   provider: {
@@ -49,5 +50,18 @@ export const endpoints = {
     notificationRead: (id: number) => `/v1/common/notifications/${id}/read/`,
     notificationsMarkAllRead: '/v1/common/notifications/mark-all-read/',
     notificationsUnreadCount: '/v1/common/notifications/unread-count/',
+  },
+  admin: {
+    stats: '/v1/admin/stats/',
+    providers: '/v1/admin/providers/',
+    providerCreate: '/v1/admin/providers/create/',
+    providerDetail: (id: number) => `/v1/admin/providers/${id}/`,
+    providerUpdate: (id: number) => `/v1/admin/providers/${id}/update/`,
+    providerWorkingHours: (id: number) => `/v1/admin/providers/${id}/working-hours/`,
+    categories: '/v1/admin/categories/',
+    categoryUpdate: (id: number) => `/v1/admin/categories/${id}/`,
+    services: '/v1/admin/services/',
+    serviceUpdate: (id: number) => `/v1/admin/services/${id}/`,
+    orders: '/v1/admin/orders/',
   },
 } as const;

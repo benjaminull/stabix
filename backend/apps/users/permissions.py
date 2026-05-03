@@ -24,3 +24,12 @@ class IsProvider(permissions.BasePermission):
 
     def has_permission(self, request, view):
         return request.user and request.user.is_authenticated and request.user.is_provider
+
+
+class IsStaff(permissions.BasePermission):
+    """
+    Permission to only allow staff users (admin panel access).
+    """
+
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and request.user.is_staff

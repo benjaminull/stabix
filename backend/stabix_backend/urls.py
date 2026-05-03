@@ -2,6 +2,8 @@
 URL configuration for stabix_backend project.
 """
 
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import (
@@ -9,6 +11,10 @@ from drf_spectacular.views import (
     SpectacularRedocView,
     SpectacularSwaggerView,
 )
+
+admin.site.site_header = "Stabix Admin"
+admin.site.site_title = "Stabix"
+admin.site.index_title = "Panel de Administracion"
 
 urlpatterns = [
     # Admin
@@ -20,3 +26,7 @@ urlpatterns = [
     # API v1
     path("api/v1/", include("stabix_backend.api.v1.urls")),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

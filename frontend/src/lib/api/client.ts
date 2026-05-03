@@ -163,6 +163,7 @@ export interface User {
   phone: string | null;
   phone_verified: boolean;
   is_provider: boolean;
+  is_staff: boolean;
   created_at: string;
 }
 

@@ -2,16 +2,24 @@
 Order views
 """
 
+import logging
+
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import generics, status
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import (
+    api_view,
+    authentication_classes,
+    permission_classes,
+)
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from apps.users.permissions import IsProvider
 
 from .models import Order
 from .serializers import OrderCreateSerializer, OrderListSerializer, OrderSerializer
+
+logger = logging.getLogger(__name__)
 
 
 @extend_schema_view(
@@ -170,3 +178,87 @@ def update_order_status(request, pk):
 
     serializer = OrderSerializer(order)
     return Response(serializer.data)
+
+
+@extend_schema(
+    tags=["Payments"],
+    description="Create MercadoPago payment preference for an order",
+    responses={200: {"type": "object", "properties": {
+        "init_point": {"type": "string"},
+        "sandbox_init_point": {"type": "string"},
+    }}},
+)
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def create_payment_preference(request, pk):
+    """POST /api/v1/customer/orders/<id>/pay/"""
+    from .payment import create_preference
+
+    try:
+        order = Order.objects.get(pk=pk, job_request__user=request.user)
+    except Order.DoesNotExist:
+        return Response(
+            {"error": "Orden no encontrada"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if order.status != "created":
+        return Response(
+            {"error": "Esta orden ya fue pagada o no está disponible para pago"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        data = create_preference(order)
+    except Exception as e:
+        logger.exception("Error creating MP preference for order %s", pk)
+        return Response(
+            {"error": "No se pudo crear la preferencia de pago"},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
+    return Response(data)
+
+
+@extend_schema(
+    tags=["Payments"],
+    description="MercadoPago webhook endpoint",
+)
+@api_view(["POST"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def mercadopago_webhook(request):
+    """POST /api/v1/payments/webhook/"""
+    from .payment import verify_payment
+
+    topic = request.query_params.get("type") or request.data.get("type")
+
+    if topic == "payment":
+        data_id = (
+            request.query_params.get("data.id")
+            or request.data.get("data", {}).get("id")
+        )
+        if not data_id:
+            return Response({"status": "ok"})
+
+        try:
+            payment_info = verify_payment(data_id)
+        except Exception:
+            logger.exception("Error verifying MP payment %s", data_id)
+            return Response({"status": "ok"})
+
+        if payment_info["status"] == "approved":
+            external_ref = payment_info["external_reference"]
+            try:
+                order = Order.objects.get(pk=int(external_ref))
+            except (Order.DoesNotExist, ValueError, TypeError):
+                logger.warning("Order not found for external_reference: %s", external_ref)
+                return Response({"status": "ok"})
+
+            if order.status != "paid":
+                order.status = "paid"
+                order.payment_ref = payment_info["payment_id"]
+                order.save(update_fields=["status", "payment_ref", "updated_at"])
+                logger.info("Order %s marked as paid (payment %s)", order.id, data_id)
+
+    return Response({"status": "ok"})
