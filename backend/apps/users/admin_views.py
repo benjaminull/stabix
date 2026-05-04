@@ -494,6 +494,75 @@ def admin_provider_create(request):
     return Response(response_data, status=status.HTTP_201_CREATED)
 
 
+# ── Provider Listings ────────────────────────────────────
+
+
+class AdminListingCreateSerializer(serializers.Serializer):
+    provider_id = serializers.IntegerField()
+    service_id = serializers.IntegerField()
+    title = serializers.CharField()
+    description = serializers.CharField(required=False, allow_blank=True, default="")
+    base_price = serializers.DecimalField(max_digits=10, decimal_places=2)
+    price_unit = serializers.CharField(default="fixed")
+    estimated_duration_minutes = serializers.IntegerField(default=60)
+    is_active = serializers.BooleanField(default=True)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsStaff])
+def admin_listing_create(request):
+    """Create a listing for a provider."""
+    serializer = AdminListingCreateSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    data = serializer.validated_data
+
+    try:
+        provider = ProviderProfile.objects.get(pk=data["provider_id"])
+    except ProviderProfile.DoesNotExist:
+        return Response({"error": "Proveedor no encontrado"}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        service = Service.objects.get(pk=data["service_id"])
+    except Service.DoesNotExist:
+        return Response({"error": "Servicio no encontrado"}, status=status.HTTP_404_NOT_FOUND)
+
+    listing = Listing.objects.create(
+        provider=provider,
+        service=service,
+        title=data["title"],
+        description=data["description"],
+        base_price=data["base_price"],
+        price_unit=data["price_unit"],
+        estimated_duration_minutes=data["estimated_duration_minutes"],
+        is_active=data["is_active"],
+    )
+
+    return Response(
+        {
+            "id": listing.id,
+            "title": listing.title,
+            "base_price": str(listing.base_price),
+            "price_unit": listing.price_unit,
+            "is_active": listing.is_active,
+            "service__name": service.name,
+        },
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated, IsStaff])
+def admin_listing_delete(request, pk):
+    """Delete a listing."""
+    try:
+        listing = Listing.objects.get(pk=pk)
+    except Listing.DoesNotExist:
+        return Response({"error": "Listing no encontrado"}, status=status.HTTP_404_NOT_FOUND)
+
+    listing.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 # ── Working Hours ────────────────────────────────────────
 
 

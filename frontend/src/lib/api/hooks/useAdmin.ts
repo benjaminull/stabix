@@ -221,6 +221,39 @@ export function useAdminUpdateWorkingHours() {
   });
 }
 
+export interface AdminListingCreateData {
+  provider_id: number;
+  service_id: number;
+  title: string;
+  description?: string;
+  base_price: string;
+  price_unit?: string;
+  estimated_duration_minutes?: number;
+  is_active?: boolean;
+}
+
+export function useAdminCreateListing() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: AdminListingCreateData) =>
+      apiClient.post(endpoints.admin.listingCreate, data, { auth: true }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'provider'] });
+    },
+  });
+}
+
+export function useAdminDeleteListing() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) =>
+      apiClient.delete(endpoints.admin.listingDelete(id), { auth: true }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'provider'] });
+    },
+  });
+}
+
 export function useAdminOrders(params?: { status?: string; search?: string }) {
   const searchParams = new URLSearchParams();
   if (params?.status) searchParams.set('status', params.status);

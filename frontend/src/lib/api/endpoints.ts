@@ -62,6 +62,8 @@ export const endpoints = {
     categoryUpdate: (id: number) => `/v1/admin/categories/${id}/`,
     services: '/v1/admin/services/',
     serviceUpdate: (id: number) => `/v1/admin/services/${id}/`,
+    listingCreate: '/v1/admin/listings/create/',
+    listingDelete: (id: number) => `/v1/admin/listings/${id}/`,
     orders: '/v1/admin/orders/',
   },
 } as const;

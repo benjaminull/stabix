@@ -10,6 +10,8 @@ from apps.users.admin_views import (
     AdminProviderListView,
     AdminServiceListView,
     admin_category_update,
+    admin_listing_create,
+    admin_listing_delete,
     admin_provider_create,
     admin_provider_detail,
     admin_provider_update,
@@ -29,5 +31,7 @@ urlpatterns = [
     path("categories/<int:pk>/", admin_category_update, name="admin-category-update"),
     path("services/", AdminServiceListView.as_view(), name="admin-services"),
     path("services/<int:pk>/", admin_service_update, name="admin-service-update"),
+    path("listings/create/", admin_listing_create, name="admin-listing-create"),
+    path("listings/<int:pk>/", admin_listing_delete, name="admin-listing-delete"),
     path("orders/", AdminOrderListView.as_view(), name="admin-orders"),
 ]

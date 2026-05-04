@@ -20,7 +20,10 @@ import {
   useAdminProviderDetail,
   useAdminUpdateProvider,
   useAdminCategories,
+  useAdminServices,
   useAdminCreateProvider,
+  useAdminCreateListing,
+  useAdminDeleteListing,
   useAdminProviderWorkingHours,
   useAdminUpdateWorkingHours,
   type AdminProvider,
@@ -43,6 +46,7 @@ export default function AdminProveedores() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
+  const [showListingForm, setShowListingForm] = useState(false);
 
   const { data: providersData, isLoading } = useAdminProviders({
     search: search || undefined,
@@ -50,8 +54,11 @@ export default function AdminProveedores() {
   });
   const { data: detail } = useAdminProviderDetail(selectedId);
   const { data: categories } = useAdminCategories();
+  const { data: services } = useAdminServices();
   const updateProvider = useAdminUpdateProvider();
   const createProvider = useAdminCreateProvider();
+  const createListing = useAdminCreateListing();
+  const deleteListing = useAdminDeleteListing();
   const { data: workingHours } = useAdminProviderWorkingHours(selectedId);
   const updateWorkingHours = useAdminUpdateWorkingHours();
 
@@ -395,27 +402,61 @@ export default function AdminProveedores() {
               </div>
 
               {/* Listings */}
-              {detail.listings.length > 0 && (
-                <div>
-                  <p className="text-sm text-white/50 mb-2">Servicios ({detail.listings.length})</p>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-white/50">Servicios ({detail.listings.length})</p>
+                  <button
+                    onClick={() => setShowListingForm(true)}
+                    className="flex items-center gap-1 text-xs text-accent-400 hover:text-accent-300 transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Agregar
+                  </button>
+                </div>
+                {detail.listings.length > 0 && (
                   <div className="space-y-1.5">
                     {detail.listings.map((listing) => (
                       <div
                         key={listing.id}
-                        className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.03] border border-white/[0.04]"
+                        className="group flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.03] border border-white/[0.04]"
                       >
                         <div>
                           <p className="text-sm text-white/70">{listing.title}</p>
                           <p className="text-xs text-white/25">{listing.service__name}</p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm text-white/60">${listing.base_price}</p>
-                          <p className="text-[10px] text-white/25">{listing.price_unit}</p>
+                        <div className="flex items-center gap-2">
+                          <div className="text-right">
+                            <p className="text-sm text-white/60">${listing.base_price}</p>
+                            <p className="text-[10px] text-white/25">{listing.price_unit}</p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              if (confirm('¿Eliminar este servicio?')) {
+                                deleteListing.mutate(listing.id, {
+                                  onSuccess: () => toast.success('Servicio eliminado'),
+                                  onError: () => toast.error('Error al eliminar'),
+                                });
+                              }
+                            }}
+                            className="opacity-0 group-hover:opacity-100 p-1 rounded text-white/20 hover:text-red-400 transition-all"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
                     ))}
                   </div>
-                </div>
+                )}
+              </div>
+
+              {/* Listing create form */}
+              {showListingForm && (
+                <ListingCreateForm
+                  providerId={selectedId}
+                  services={services || []}
+                  createListing={createListing}
+                  onClose={() => setShowListingForm(false)}
+                />
               )}
             </div>
           </div>
@@ -672,6 +713,119 @@ function CreateProviderModal({
           </form>
         )}
       </div>
+    </div>
+  );
+}
+
+
+function ListingCreateForm({
+  providerId,
+  services,
+  createListing,
+  onClose,
+}: {
+  providerId: number;
+  services: { id: number; name: string; category_name: string }[];
+  createListing: ReturnType<typeof useAdminCreateListing>;
+  onClose: () => void;
+}) {
+  const [form, setForm] = useState({
+    service_id: '',
+    title: '',
+    description: '',
+    base_price: '',
+    price_unit: 'fixed',
+    is_active: true,
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.service_id || !form.title || !form.base_price) {
+      toast.error('Completa los campos requeridos');
+      return;
+    }
+    createListing.mutate(
+      {
+        provider_id: providerId,
+        service_id: parseInt(form.service_id),
+        title: form.title,
+        description: form.description,
+        base_price: form.base_price,
+        price_unit: form.price_unit,
+        is_active: form.is_active,
+      },
+      {
+        onSuccess: () => {
+          toast.success('Servicio creado');
+          onClose();
+        },
+        onError: (err) => toast.error(err instanceof Error ? err.message : 'Error al crear'),
+      }
+    );
+  };
+
+  return (
+    <div className="border border-accent-500/20 rounded-xl p-4 bg-accent-500/5 space-y-3">
+      <p className="text-sm font-medium text-accent-400">Nuevo Servicio</p>
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <select
+          value={form.service_id}
+          onChange={(e) => setForm({ ...form, service_id: e.target.value })}
+          className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-white text-sm px-3 py-2 focus:outline-none"
+        >
+          <option value="">Tipo de servicio...</option>
+          {services.map((s) => (
+            <option key={s.id} value={s.id}>{s.name} ({s.category_name})</option>
+          ))}
+        </select>
+        <input
+          value={form.title}
+          onChange={(e) => setForm({ ...form, title: e.target.value })}
+          placeholder="Titulo"
+          className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-white text-sm px-3 py-2 focus:outline-none placeholder:text-white/20"
+        />
+        <textarea
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          placeholder="Descripcion"
+          rows={2}
+          className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-white text-sm px-3 py-2 focus:outline-none resize-none placeholder:text-white/20"
+        />
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            type="number"
+            value={form.base_price}
+            onChange={(e) => setForm({ ...form, base_price: e.target.value })}
+            placeholder="Precio"
+            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-white text-sm px-3 py-2 focus:outline-none placeholder:text-white/20"
+          />
+          <select
+            value={form.price_unit}
+            onChange={(e) => setForm({ ...form, price_unit: e.target.value })}
+            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg text-white text-sm px-3 py-2 focus:outline-none"
+          >
+            <option value="fixed">Precio fijo</option>
+            <option value="hourly">Por hora</option>
+            <option value="daily">Por dia</option>
+          </select>
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 py-2 rounded-lg text-sm text-white/40 hover:text-white hover:bg-white/[0.04] transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={createListing.isPending}
+            className="flex-1 bg-accent-500 text-brand-900 py-2 rounded-lg text-sm font-medium hover:bg-accent-400 transition-colors disabled:opacity-50"
+          >
+            {createListing.isPending ? 'Creando...' : 'Guardar'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
