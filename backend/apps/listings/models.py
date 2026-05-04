@@ -20,7 +20,7 @@ class Listing(TimestampedModel):
         "taxonomy.Service", on_delete=models.CASCADE, related_name="listings"
     )
     title = models.CharField(max_length=200)
-    description = models.TextField()
+    description = models.TextField(blank=True, default="")
     base_price = models.DecimalField(
         max_digits=10,
         decimal_places=2,

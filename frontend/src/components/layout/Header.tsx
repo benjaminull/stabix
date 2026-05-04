@@ -68,7 +68,7 @@ export function Header() {
 
                 {/* Dropdown */}
                 {menuOpen && (
-                  <div className="absolute right-0 top-full mt-1 w-48 bg-[#0D213B]/95 backdrop-blur-xl rounded-xl border border-white/10 shadow-xl shadow-black/20 overflow-hidden">
+                  <div className="absolute right-0 top-full mt-1 w-48 z-50 bg-[#0D213B]/95 backdrop-blur-xl rounded-xl border border-white/10 shadow-xl shadow-black/20 overflow-hidden">
                     {/* User info */}
                     <div className="px-3 py-2.5 border-b border-white/5">
                       <p className="text-xs font-medium text-white truncate">

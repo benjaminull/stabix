@@ -15,12 +15,13 @@ class ListingSerializer(serializers.ModelSerializer):
 
     provider_details = ProviderProfileListSerializer(source="provider", read_only=True)
     service_details = ServiceListSerializer(source="service", read_only=True)
+    description = serializers.CharField(required=False, allow_blank=True, default="")
+    estimated_duration_minutes = serializers.IntegerField(required=False, default=60)
 
     class Meta:
         model = Listing
         fields = [
             "id",
-            "provider",
             "provider_details",
             "service",
             "service_details",
@@ -33,7 +34,7 @@ class ListingSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "provider", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_at", "updated_at"]
 
 
 class ListingListSerializer(serializers.ModelSerializer):

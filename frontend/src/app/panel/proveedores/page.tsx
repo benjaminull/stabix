@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Search,
   Star,
@@ -12,9 +12,11 @@ import {
   Plus,
   Copy,
   Clock,
+  MapPin,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import toast from 'react-hot-toast';
+import { MAPBOX_TOKEN } from '@/lib/config/constants';
 import {
   useAdminProviders,
   useAdminProviderDetail,
@@ -478,6 +480,87 @@ export default function AdminProveedores() {
 }
 
 
+function AddressAutocomplete({
+  onSelect,
+  defaultValue,
+}: {
+  onSelect: (lat: number, lng: number, address: string) => void;
+  defaultValue: string;
+}) {
+  const [query, setQuery] = useState(defaultValue);
+  const [suggestions, setSuggestions] = useState<{ place_name: string; center: [number, number] }[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout>();
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const searchAddress = (value: string) => {
+    setQuery(value);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    if (value.length < 3) { setSuggestions([]); return; }
+
+    timeoutRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(value)}.json?access_token=${MAPBOX_TOKEN}&country=cl&language=es&limit=5`
+        );
+        const data = await res.json();
+        setSuggestions(data.features || []);
+        setShowSuggestions(true);
+      } catch {
+        setSuggestions([]);
+      }
+    }, 300);
+  };
+
+  const selectSuggestion = (s: { place_name: string; center: [number, number] }) => {
+    setQuery(s.place_name);
+    setShowSuggestions(false);
+    onSelect(s.center[1], s.center[0], s.place_name);
+  };
+
+  return (
+    <div ref={containerRef} className="relative">
+      <label className="text-xs text-white/40 mb-1 block">Dirección</label>
+      <div className="relative">
+        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => searchAddress(e.target.value)}
+          onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+          placeholder="Ej: Av. Providencia 1234, Santiago"
+          className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl text-white text-sm pl-9 pr-3 py-2.5 focus:outline-none focus:border-accent-500/50"
+        />
+      </div>
+      {showSuggestions && suggestions.length > 0 && (
+        <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-brand-800 border border-white/[0.08] rounded-xl overflow-hidden shadow-xl">
+          {suggestions.map((s, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => selectSuggestion(s)}
+              className="w-full text-left px-3 py-2.5 text-sm text-white/70 hover:bg-white/[0.06] hover:text-white transition-colors flex items-start gap-2"
+            >
+              <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0 text-accent-500" />
+              <span className="line-clamp-1">{s.place_name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CreateProviderModal({
   categories,
   onClose,
@@ -670,37 +753,20 @@ function CreateProviderModal({
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="text-xs text-white/40 mb-1 block">Latitud</label>
-                <input
-                  type="number"
-                  step="any"
-                  value={form.location_lat ?? ''}
-                  onChange={(e) => setForm({ ...form, location_lat: e.target.value ? parseFloat(e.target.value) : undefined })}
-                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl text-white text-sm px-3 py-2.5 focus:outline-none focus:border-accent-500/50"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-white/40 mb-1 block">Longitud</label>
-                <input
-                  type="number"
-                  step="any"
-                  value={form.location_lng ?? ''}
-                  onChange={(e) => setForm({ ...form, location_lng: e.target.value ? parseFloat(e.target.value) : undefined })}
-                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl text-white text-sm px-3 py-2.5 focus:outline-none focus:border-accent-500/50"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-white/40 mb-1 block">Radio (km)</label>
-                <input
-                  type="number"
-                  step="any"
-                  value={form.radius_km ?? 15}
-                  onChange={(e) => setForm({ ...form, radius_km: parseFloat(e.target.value) || 15 })}
-                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl text-white text-sm px-3 py-2.5 focus:outline-none focus:border-accent-500/50"
-                />
-              </div>
+            <AddressAutocomplete
+              onSelect={(lat, lng, address) => setForm({ ...form, location_lat: lat, location_lng: lng })}
+              defaultValue=""
+            />
+
+            <div>
+              <label className="text-xs text-white/40 mb-1 block">Radio de cobertura (km)</label>
+              <input
+                type="number"
+                step="any"
+                value={form.radius_km ?? 15}
+                onChange={(e) => setForm({ ...form, radius_km: parseFloat(e.target.value) || 15 })}
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl text-white text-sm px-3 py-2.5 focus:outline-none focus:border-accent-500/50"
+              />
             </div>
 
             <button

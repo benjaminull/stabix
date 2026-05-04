@@ -474,7 +474,7 @@ export function ExploreMap({
       <AnimatePresence>
         {selectedProvider && (
           <motion.div
-            className="absolute bottom-4 left-1/2 z-20 w-full max-w-sm px-4"
+            className="absolute bottom-4 left-1/2 z-[300] w-full max-w-sm px-4"
             initial={{ opacity: 0, y: 20, x: '-50%' }}
             animate={{ opacity: 1, y: 0, x: '-50%' }}
             exit={{ opacity: 0, y: 20, x: '-50%' }}

@@ -118,7 +118,9 @@ export default function ProviderBusinessPage() {
         toast.success('Servicio creado');
       }
       resetListingForm();
-    } catch { toast.error('Error al guardar'); }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al guardar');
+    }
   };
 
   const handleDeleteListing = async (id: number) => {
